@@ -16,6 +16,7 @@ final class PromptFlowModel: ObservableObject {
     @Published var isEditorSelectionEmpty = true
     @Published private(set) var focusRequestID = 0
     @Published private(set) var previousApplicationName: String?
+    @Published private(set) var targetHistory: [NSRunningApplication] = []
 
     private var previousApplication: NSRunningApplication?
 
@@ -36,8 +37,21 @@ final class PromptFlowModel: ObservableObject {
             return
         }
 
+        setTarget(application)
+    }
+
+    func setTarget(_ application: NSRunningApplication) {
         previousApplication = application
         previousApplicationName = application.localizedName
+
+        // Update history: remove if exists, insert at front, limit to 10
+        if let index = targetHistory.firstIndex(where: { $0.bundleIdentifier == application.bundleIdentifier }) {
+            targetHistory.remove(at: index)
+        }
+        targetHistory.insert(application, at: 0)
+        if targetHistory.count > 10 {
+            targetHistory.removeLast()
+        }
     }
 
     func openFromShortcut() {

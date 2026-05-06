@@ -81,10 +81,29 @@ struct ContentView: View {
 
             Spacer()
 
-            Text(model.statusText)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            if !model.targetHistory.isEmpty {
+                Menu {
+                    ForEach(model.targetHistory, id: \.bundleIdentifier) { app in
+                        Button {
+                            model.setTarget(app)
+                        } label: {
+                            Text(app.localizedName ?? "Unknown App")
+                        }
+                    }
+                } label: {
+                    Text(model.statusText)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+            } else {
+                Text(model.statusText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .buttonStyle(.bordered)
         .padding(.horizontal, 12)
