@@ -53,6 +53,7 @@ struct WebPromptEditor: NSViewRepresentable {
 
         if context.coordinator.lastFocusRequestID != focusRequestID {
             context.coordinator.lastFocusRequestID = focusRequestID
+            webView.becomeFirstResponder()
             context.coordinator.callJavaScript("window.promptFlowEditor?.focusEditor();")
         }
     }
