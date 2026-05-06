@@ -32,6 +32,9 @@ struct ContentView: View {
                             }
                             .tag(SidebarSelection.history(entry.id))
                         }
+                        .onDelete { offsets in
+                            model.deleteHistory(at: offsets)
+                        }
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)

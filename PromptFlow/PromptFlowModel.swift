@@ -9,6 +9,7 @@ import AppKit
 import ApplicationServices
 import Combine
 import Foundation
+import SwiftUI
 
 struct PromptHistory: Identifiable, Codable, Hashable {
     let id: UUID
@@ -181,6 +182,9 @@ final class PromptFlowModel: ObservableObject {
     }
 
     private func addToHistory(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
         if let existingIndex = history.firstIndex(where: { $0.text == text }) {
             history.remove(at: existingIndex)
         }
@@ -188,6 +192,18 @@ final class PromptFlowModel: ObservableObject {
         history.insert(entry, at: 0)
         shrinkHistory(to: settings?.historyLimit ?? 100)
         saveHistory()
+    }
+
+    func deleteHistory(at offsets: IndexSet) {
+        history.remove(atOffsets: offsets)
+        saveHistory()
+        
+        // Clear selection if the deleted item was selected
+        if case .history(let id) = selection {
+            if !history.contains(where: { $0.id == id }) {
+                selection = .current
+            }
+        }
     }
 
     private func shrinkHistory(to limit: Int) {
