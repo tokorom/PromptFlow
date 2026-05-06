@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var model: PromptFlowModel
     @EnvironmentObject private var settings: AppSettings
+    @State private var historyEditingMode: Bool = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,7 +21,7 @@ struct ContentView: View {
                             .tag(SidebarSelection.current)
                     }
 
-                    Section("History") {
+                    Section {
                         ForEach(model.history) { entry in
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(entry.text)
@@ -32,8 +33,16 @@ struct ContentView: View {
                             }
                             .tag(SidebarSelection.history(entry.id))
                         }
-                        .onDelete { offsets in
-                            model.deleteHistory(at: offsets)
+                    } header: {
+                        HStack {
+                            Text("History")
+                            Spacer()
+                            Button {
+                                historyEditingMode = true
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption2)
+                            }
                         }
                     }
                 }
