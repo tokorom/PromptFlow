@@ -141,7 +141,12 @@ final class PromptFlowModel: ObservableObject {
         for window in NSApp.windows {
             window.makeKeyAndOrderFront(nil)
         }
-        focusEditor()
+        
+        // Use a slight delay to ensure SwiftUI finished updating the view hierarchy
+        // before requesting focus on the WebView.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.focusEditor()
+        }
     }
 
     func returnToTarget() {
