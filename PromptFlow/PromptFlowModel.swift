@@ -10,6 +10,18 @@ import ApplicationServices
 import Combine
 import Foundation
 
+struct PromptHistory: Identifiable, Codable, Hashable {
+    let id: UUID
+    let text: String
+    let date: Date
+
+    init(id: UUID = UUID(), text: String, date: Date = Date()) {
+        self.id = id
+        self.text = text
+        self.date = date
+    }
+}
+
 @MainActor
 final class PromptFlowModel: ObservableObject {
     @Published var promptText = ""
@@ -17,8 +29,13 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var focusRequestID = 0
     @Published private(set) var previousApplicationName: String?
     @Published private(set) var targetHistory: [NSRunningApplication] = []
+    @Published private(set) var history: [PromptHistory] = []
+    @Published private(set) var isSubmitting = false
+    @Published private(set) var isCopying = false
 
     private var previousApplication: NSRunningApplication?
+    private var settings: AppSettings?
+    private var cancellables = Set<AnyCancellable>()
 
     var canSubmit: Bool {
         previousApplication != nil && !promptText.isEmpty
@@ -30,6 +47,21 @@ final class PromptFlowModel: ObservableObject {
         } else {
             "Open PromptFlow from another app to enable Submit"
         }
+    }
+
+    init() {
+        loadHistory()
+    }
+
+    func setup(settings: AppSettings) {
+        self.settings = settings
+        settings.$historyLimit
+            .sink { [weak self] limit in
+                Task { @MainActor in
+                    self?.shrinkHistory(to: limit)
+                }
+            }
+            .store(in: &cancellables)
     }
 
     func noteActivatedApplication(_ application: NSRunningApplication?) {
@@ -68,8 +100,14 @@ final class PromptFlowModel: ObservableObject {
     }
 
     func copyPrompt() {
+        isCopying = true
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(promptText, forType: .string)
+        addToHistory(promptText)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.isCopying = false
+        }
     }
 
     func submitPrompt() {
@@ -77,11 +115,63 @@ final class PromptFlowModel: ObservableObject {
             return
         }
 
+        isSubmitting = true
         copyPrompt()
         previousApplication.activate(options: [.activateAllWindows])
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             Self.postPasteShortcut()
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.isSubmitting = false
+        }
+    }
+
+    private func addToHistory(_ text: String) {
+        if let existingIndex = history.firstIndex(where: { $0.text == text }) {
+            history.remove(at: existingIndex)
+        }
+        let entry = PromptHistory(text: text)
+        history.insert(entry, at: 0)
+        shrinkHistory(to: settings?.historyLimit ?? 100)
+        saveHistory()
+    }
+
+    private func shrinkHistory(to limit: Int) {
+        if history.count > limit {
+            history = Array(history.prefix(limit))
+            saveHistory()
+        }
+    }
+
+    func clearHistory() {
+        history.removeAll()
+        saveHistory()
+    }
+
+    private var historyURL: URL {
+        let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport.appendingPathComponent("history.json")
+    }
+
+    private func saveHistory() {
+        do {
+            let data = try JSONEncoder().encode(history)
+            try data.write(to: historyURL)
+        } catch {
+            print("Failed to save history: \(error)")
+        }
+    }
+
+    private func loadHistory() {
+        do {
+            let data = try Data(contentsOf: historyURL)
+            history = try JSONDecoder().decode([PromptHistory].self, from: data)
+        } catch {
+            print("No history found or failed to load: \(error)")
         }
     }
 

@@ -11,16 +11,37 @@ struct ContentView: View {
     @EnvironmentObject private var model: PromptFlowModel
     @EnvironmentObject private var settings: AppSettings
 
-    @State private var selectedItem: PromptListItem? = .current
+    @State private var selectedHistoryID: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
             NavigationSplitView {
-                List(PromptListItem.allCases, selection: $selectedItem) { item in
-                    Label(item.title, systemImage: item.systemImage)
-                        .tag(item)
+                List(selection: $selectedHistoryID) {
+                    Section("Current") {
+                        Label("Current Prompt", systemImage: "text.alignleft")
+                            .tag(nil as UUID?)
+                    }
+
+                    Section("History") {
+                        ForEach(model.history) { entry in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(entry.text)
+                                    .lineLimit(2)
+                                    .font(.subheadline)
+                                Text(entry.date, style: .date)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(entry.id as UUID?)
+                        }
+                    }
                 }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
+                .onChange(of: selectedHistoryID) { _, id in
+                    if let id, let entry = model.history.first(where: { $0.id == id }) {
+                        model.promptText = entry.text
+                    }
+                }
             } detail: {
                 editorPane
             }
@@ -35,8 +56,13 @@ struct ContentView: View {
     private var editorPane: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(selectedItem?.title ?? PromptListItem.current.title)
-                    .font(.headline)
+                if let selectedHistoryID, let entry = model.history.first(where: { $0.id == selectedHistoryID }) {
+                    Text(entry.date, style: .date)
+                        .font(.headline)
+                } else {
+                    Text("Current Prompt")
+                        .font(.headline)
+                }
                 Spacer()
                 if settings.usesVimKeyBindings {
                     Label("Vim", systemImage: "keyboard")
@@ -64,19 +90,35 @@ struct ContentView: View {
             Button {
                 model.submitPrompt()
             } label: {
-                Label("Submit", systemImage: "paperplane")
+                HStack(spacing: 6) {
+                    if model.isSubmitting {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "paperplane")
+                    }
+                    Text("Submit")
+                }
             }
             .keyboardShortcut("s", modifiers: .command)
-            .disabled(!model.canSubmit)
+            .disabled(!model.canSubmit || model.isSubmitting)
             .help(model.canSubmit ? "Return to the previous app and paste" : "No previous app is known yet")
 
             Button {
                 model.copyPrompt()
             } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+                HStack(spacing: 6) {
+                    if model.isCopying {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    Text("Copy")
+                }
             }
             .keyboardShortcut("c", modifiers: .command)
-            .disabled(!model.isEditorSelectionEmpty)
+            .disabled(!model.isEditorSelectionEmpty || model.isCopying)
             .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
 
             Spacer()
@@ -109,25 +151,5 @@ struct ContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(.bar)
-    }
-}
-
-private enum PromptListItem: String, CaseIterable, Identifiable {
-    case current
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .current:
-            "Current Prompt"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .current:
-            "text.alignleft"
-        }
     }
 }

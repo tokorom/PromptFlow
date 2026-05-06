@@ -8,18 +8,45 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject private var model: PromptFlowModel
     @EnvironmentObject private var settings: AppSettings
+
+    @State private var showingClearConfirmation = false
 
     var body: some View {
         Form {
-            Picker("Hotkey", selection: $settings.hotkey) {
-                ForEach(HotkeyTrigger.allCases) { trigger in
-                    Text(trigger.title)
-                        .tag(trigger)
+            Section("Hotkey") {
+                Picker("Hotkey", selection: $settings.hotkey) {
+                    ForEach(HotkeyTrigger.allCases) { trigger in
+                        Text(trigger.title)
+                            .tag(trigger)
+                    }
                 }
             }
 
-            Toggle("Vim key bindings", isOn: $settings.usesVimKeyBindings)
+            Section("Editor") {
+                Toggle("Vim key bindings", isOn: $settings.usesVimKeyBindings)
+            }
+
+            Section("History") {
+                Stepper("History Limit: \(settings.historyLimit)", value: $settings.historyLimit, in: 10...1000, step: 10)
+                
+                Button("Clear History", role: .destructive) {
+                    showingClearConfirmation = true
+                }
+                .confirmationDialog(
+                    "Are you sure you want to clear your history?",
+                    isPresented: $showingClearConfirmation,
+                    titleVisibility: .visible
+                ) {
+                    Button("Clear All", role: .destructive) {
+                        model.clearHistory()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This action cannot be undone.")
+                }
+            }
         }
         .formStyle(.grouped)
         .padding(20)

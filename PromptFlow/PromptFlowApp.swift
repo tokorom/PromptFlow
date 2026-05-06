@@ -10,7 +10,6 @@ import SwiftUI
 @main
 struct PromptFlowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
     @StateObject private var model = PromptFlowModel()
     @StateObject private var settings = AppSettings()
 
@@ -20,6 +19,7 @@ struct PromptFlowApp: App {
                 .environmentObject(model)
                 .environmentObject(settings)
                 .onAppear {
+                    model.setup(settings: settings)
                     appDelegate.configure(model: model, settings: settings)
                 }
         }
@@ -29,6 +29,7 @@ struct PromptFlowApp: App {
 
         Settings {
             SettingsView()
+                .environmentObject(model)
                 .environmentObject(settings)
         }
     }
