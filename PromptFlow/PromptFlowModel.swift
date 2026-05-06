@@ -17,10 +17,10 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var focusRequestID = 0
     @Published private(set) var previousApplicationName: String?
 
-    private weak var previousApplication: NSRunningApplication?
+    private var previousApplication: NSRunningApplication?
 
     var canSubmit: Bool {
-        previousApplicationName != nil
+        previousApplication != nil && !promptText.isEmpty
     }
 
     var statusText: String {
