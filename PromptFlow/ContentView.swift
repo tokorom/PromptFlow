@@ -68,7 +68,10 @@ struct ContentView: View {
             .background(.bar)
 
             WebPromptEditor(
-                text: $model.promptText,
+                text: Binding(
+                    get: { model.promptText },
+                    set: { model.updateTextFromEditor($0) }
+                ),
                 isSelectionEmpty: $model.isEditorSelectionEmpty,
                 usesVimKeyBindings: settings.usesVimKeyBindings,
                 focusRequestID: model.focusRequestID,

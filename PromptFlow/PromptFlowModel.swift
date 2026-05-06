@@ -29,11 +29,15 @@ enum SidebarSelection: Hashable {
 
 @MainActor
 final class PromptFlowModel: ObservableObject {
-    @Published var promptText = ""
-    @Published var currentPromptBuffer = ""
+    @Published private(set) var promptText = ""
+    @Published private(set) var currentPromptBuffer = ""
     @Published var isEditorSelectionEmpty = true
     @Published private(set) var focusRequestID = 0
-    @Published var selection: SidebarSelection = .current
+    @Published var selection: SidebarSelection = .current {
+        didSet {
+            updatePromptTextFromSelection()
+        }
+    }
     @Published private(set) var previousApplicationName: String?
     @Published private(set) var targetHistory: [NSRunningApplication] = []
     @Published private(set) var history: [PromptHistory] = []
@@ -62,33 +66,26 @@ final class PromptFlowModel: ObservableObject {
 
     init() {
         loadHistory()
+    }
 
-        $promptText
-            .sink { [weak self] text in
-                guard let self, self.selection == .current else { return }
-                if self.currentPromptBuffer != text {
-                    self.currentPromptBuffer = text
-                }
+    private func updatePromptTextFromSelection() {
+        switch selection {
+        case .current:
+            promptText = currentPromptBuffer
+        case .history(let id):
+            if let entry = history.first(where: { $0.id == id }) {
+                promptText = entry.text
             }
-            .store(in: &cancellables)
+        }
+    }
 
-        $selection
-            .sink { [weak self] selection in
-                guard let self else { return }
-                switch selection {
-                case .current:
-                    if self.promptText != self.currentPromptBuffer {
-                        self.promptText = self.currentPromptBuffer
-                    }
-                case .history(let id):
-                    if let entry = self.history.first(where: { $0.id == id }) {
-                        if self.promptText != entry.text {
-                            self.promptText = entry.text
-                        }
-                    }
-                }
+    func updateTextFromEditor(_ text: String) {
+        if promptText != text {
+            promptText = text
+            if selection == .current {
+                currentPromptBuffer = text
             }
-            .store(in: &cancellables)
+        }
     }
 
     func setup(settings: AppSettings) {
