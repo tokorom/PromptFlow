@@ -9,9 +9,47 @@ import SwiftUI
 
 @main
 struct PromptFlowApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    @StateObject private var model = PromptFlowModel()
+    @StateObject private var settings = AppSettings()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(model)
+                .environmentObject(settings)
+                .onAppear {
+                    appDelegate.configure(model: model, settings: settings)
+                }
+        }
+        .commands {
+            PromptCommands(model: model)
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(settings)
+        }
+    }
+}
+
+struct PromptCommands: Commands {
+    @ObservedObject var model: PromptFlowModel
+
+    var body: some Commands {
+        CommandMenu("Prompt") {
+            Button("Submit") {
+                model.submitPrompt()
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            .disabled(!model.canSubmit)
+
+            Button("Copy") {
+                model.copyPrompt()
+            }
+            .keyboardShortcut("c", modifiers: .command)
+            .disabled(!model.isEditorSelectionEmpty)
         }
     }
 }

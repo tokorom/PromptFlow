@@ -1,0 +1,352 @@
+//
+//  WebPromptEditor.swift
+//  PromptFlow
+//
+//  Created by Yuta Tokoro on 2026/05/06.
+//
+
+import SwiftUI
+import WebKit
+
+struct WebPromptEditor: NSViewRepresentable {
+    @Binding var text: String
+    @Binding var isSelectionEmpty: Bool
+
+    let usesVimKeyBindings: Bool
+    let focusRequestID: Int
+    let onSubmit: () -> Void
+    let onCopyAll: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController.add(context.coordinator, name: "promptFlow")
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.allowsBackForwardNavigationGestures = false
+        webView.loadHTMLString(Self.editorHTML, baseURL: nil)
+
+        context.coordinator.webView = webView
+        context.coordinator.lastKnownText = text
+        context.coordinator.lastVimMode = usesVimKeyBindings
+        context.coordinator.lastFocusRequestID = focusRequestID
+
+        return webView
+    }
+
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        context.coordinator.parent = self
+
+        if context.coordinator.lastKnownText != text {
+            context.coordinator.lastKnownText = text
+            context.coordinator.callJavaScriptFunction("setText", argument: text)
+        }
+
+        if context.coordinator.lastVimMode != usesVimKeyBindings {
+            context.coordinator.lastVimMode = usesVimKeyBindings
+            context.coordinator.callJavaScriptFunction("setVim", argument: usesVimKeyBindings)
+        }
+
+        if context.coordinator.lastFocusRequestID != focusRequestID {
+            context.coordinator.lastFocusRequestID = focusRequestID
+            context.coordinator.callJavaScript("window.promptFlowEditor?.focusEditor();")
+        }
+    }
+}
+
+extension WebPromptEditor {
+    @MainActor
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        var parent: WebPromptEditor
+        weak var webView: WKWebView?
+        var lastKnownText = ""
+        var lastVimMode: Bool?
+        var lastFocusRequestID = 0
+
+        init(_ parent: WebPromptEditor) {
+            self.parent = parent
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            callJavaScriptFunction("setText", argument: parent.text)
+            callJavaScriptFunction("setVim", argument: parent.usesVimKeyBindings)
+            callJavaScript("window.promptFlowEditor?.focusEditor();")
+        }
+
+        nonisolated func userContentController(
+            _ userContentController: WKUserContentController,
+            didReceive message: WKScriptMessage
+        ) {
+            MainActor.assumeIsolated {
+                handleScriptMessageBody(message.body)
+            }
+        }
+
+        private func handleScriptMessageBody(_ messageBody: Any) {
+            guard let body = messageBody as? [String: Any],
+                  let action = body["action"] as? String else {
+                return
+            }
+
+            switch action {
+            case "textChanged":
+                let text = body["text"] as? String ?? ""
+                lastKnownText = text
+                parent.text = text
+            case "selectionChanged":
+                parent.isSelectionEmpty = body["isSelectionEmpty"] as? Bool ?? true
+            case "submit":
+                parent.onSubmit()
+            case "copyAll":
+                parent.onCopyAll()
+            default:
+                break
+            }
+        }
+
+        func callJavaScriptFunction(_ name: String, argument: String) {
+            guard let encoded = try? JSONEncoder().encode(argument),
+                  let json = String(data: encoded, encoding: .utf8) else {
+                return
+            }
+
+            callJavaScript("window.promptFlowEditor?.\(name)(\(json));")
+        }
+
+        func callJavaScriptFunction(_ name: String, argument: Bool) {
+            callJavaScript("window.promptFlowEditor?.\(name)(\(argument ? "true" : "false"));")
+        }
+
+        func callJavaScript(_ script: String) {
+            webView?.evaluateJavaScript(script)
+        }
+    }
+}
+
+private extension WebPromptEditor {
+    static let editorHTML = """
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+        :root {
+          color-scheme: light dark;
+          font: -apple-system-body;
+          --editor-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+
+        html, body, #editor {
+          height: 100%;
+          margin: 0;
+        }
+
+        body {
+          background: Canvas;
+          color: CanvasText;
+          overflow: hidden;
+        }
+
+        .cm-editor {
+          height: 100%;
+          font-family: var(--editor-font);
+          font-size: 14px;
+        }
+
+        .cm-scroller {
+          line-height: 1.55;
+        }
+
+        textarea.fallback-editor {
+          width: 100%;
+          height: 100%;
+          box-sizing: border-box;
+          border: 0;
+          outline: 0;
+          resize: none;
+          padding: 14px;
+          background: Canvas;
+          color: CanvasText;
+          font-family: var(--editor-font);
+          font-size: 14px;
+          line-height: 1.55;
+        }
+      </style>
+    </head>
+    <body>
+      <div id="editor"></div>
+      <script type="module">
+        const bridge = window.webkit?.messageHandlers?.promptFlow;
+        const post = (message) => bridge?.postMessage(message);
+
+        let view = null;
+        let textarea = null;
+        let vimCompartment = null;
+        let vimExtensionFactory = null;
+
+        const hasSelection = () => {
+          if (view) {
+            return view.state.selection.ranges.some((range) => !range.empty);
+          }
+          if (textarea) {
+            return textarea.selectionStart !== textarea.selectionEnd;
+          }
+          return false;
+        };
+
+        const notifySelection = () => {
+          post({ action: "selectionChanged", isSelectionEmpty: !hasSelection() });
+        };
+
+        const notifyText = (value) => {
+          post({ action: "textChanged", text: value });
+        };
+
+        const installCommandShortcuts = (target) => {
+          target.addEventListener("keydown", (event) => {
+            const key = event.key.toLowerCase();
+
+            if (event.metaKey && key === "s") {
+              event.preventDefault();
+              post({ action: "submit" });
+              return;
+            }
+
+            if (event.metaKey && key === "c" && !hasSelection()) {
+              event.preventDefault();
+              post({ action: "copyAll" });
+            }
+          });
+        };
+
+        const setupCodeMirror = async () => {
+          const stateModule = await import("https://esm.sh/@codemirror/state@6.5.2");
+          const viewModule = await import("https://esm.sh/@codemirror/view@6.36.8");
+          const commandsModule = await import("https://esm.sh/@codemirror/commands@6.8.1");
+          const markdownModule = await import("https://esm.sh/@codemirror/lang-markdown@6.3.3");
+          const vimModule = await import("https://esm.sh/@replit/codemirror-vim@6.2.1");
+
+          const { EditorState, Compartment } = stateModule;
+          const { EditorView, keymap, lineNumbers, highlightActiveLine, placeholder } = viewModule;
+          const { defaultKeymap, history, historyKeymap, indentWithTab } = commandsModule;
+          const { markdown } = markdownModule;
+          const { vim } = vimModule;
+
+          vimCompartment = new Compartment();
+          vimExtensionFactory = vim;
+
+          const updateListener = EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              notifyText(update.state.doc.toString());
+            }
+            if (update.selectionSet || update.docChanged || update.focusChanged) {
+              notifySelection();
+            }
+          });
+
+          const theme = EditorView.theme({
+            "&": {
+              backgroundColor: "Canvas",
+              color: "CanvasText"
+            },
+            ".cm-content": {
+              padding: "14px 12px",
+              caretColor: "CanvasText"
+            },
+            ".cm-gutters": {
+              backgroundColor: "Canvas",
+              color: "GrayText",
+              borderRightColor: "color-mix(in srgb, CanvasText 12%, transparent)"
+            },
+            ".cm-activeLine, .cm-activeLineGutter": {
+              backgroundColor: "color-mix(in srgb, Highlight 12%, transparent)"
+            },
+            ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
+              backgroundColor: "color-mix(in srgb, Highlight 35%, transparent)"
+            },
+            "&.cm-focused": {
+              outline: "none"
+            }
+          });
+
+          const state = EditorState.create({
+            doc: "",
+            extensions: [
+              lineNumbers(),
+              history(),
+              markdown(),
+              highlightActiveLine(),
+              placeholder("Write a prompt..."),
+              theme,
+              updateListener,
+              keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+              vimCompartment.of([])
+            ]
+          });
+
+          view = new EditorView({
+            state,
+            parent: document.getElementById("editor")
+          });
+
+          installCommandShortcuts(view.dom);
+        };
+
+        const setupFallbackEditor = () => {
+          textarea = document.createElement("textarea");
+          textarea.className = "fallback-editor";
+          textarea.spellcheck = false;
+          textarea.placeholder = "Write a prompt...";
+          document.getElementById("editor").replaceChildren(textarea);
+
+          textarea.addEventListener("input", () => notifyText(textarea.value));
+          textarea.addEventListener("select", notifySelection);
+          textarea.addEventListener("keyup", notifySelection);
+          textarea.addEventListener("mouseup", notifySelection);
+          installCommandShortcuts(textarea);
+        };
+
+        window.promptFlowEditor = {
+          setText(value) {
+            if (view && view.state.doc.toString() !== value) {
+              view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: value }
+              });
+            } else if (textarea && textarea.value !== value) {
+              textarea.value = value;
+            }
+          },
+          setVim(enabled) {
+            if (view && vimCompartment && vimExtensionFactory) {
+              view.dispatch({
+                effects: vimCompartment.reconfigure(enabled ? vimExtensionFactory() : [])
+              });
+            }
+          },
+          focusEditor() {
+            if (view) {
+              view.focus();
+            } else if (textarea) {
+              textarea.focus();
+            }
+            notifySelection();
+          }
+        };
+
+        try {
+          await setupCodeMirror();
+        } catch (error) {
+          setupFallbackEditor();
+        }
+
+        window.promptFlowEditor.focusEditor();
+      </script>
+    </body>
+    </html>
+    """
+}
