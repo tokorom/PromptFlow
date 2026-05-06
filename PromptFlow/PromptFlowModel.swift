@@ -158,6 +158,11 @@ final class PromptFlowModel: ObservableObject {
         NSPasteboard.general.setString(promptText, forType: .string)
         addToHistory(promptText)
 
+        if selection == .current {
+            currentPromptBuffer = ""
+            promptText = ""
+        }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.isCopying = false
         }
