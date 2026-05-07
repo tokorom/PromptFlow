@@ -1,0 +1,51 @@
+#!/bin/zsh
+
+set -e
+
+# Configuration
+XCCONFIG="Version.xcconfig"
+PROJECT="PromptFlow.xcodeproj"
+SCHEME="PromptFlow"
+BUILD_DIR="build"
+ARCHIVE_PATH="$BUILD_DIR/PromptFlow.xcarchive"
+APP_PATH="$ARCHIVE_PATH/Products/Applications/PromptFlow.app"
+
+# 1. Get version from xcconfig
+VERSION=$(grep -E '^APP_VERSION' "$XCCONFIG" | awk -F'=' '{print $2}' | tr -d ' ')
+
+if [[ -z "$VERSION" ]]; then
+    echo "Error: Could not find APP_VERSION in $XCCONFIG"
+    exit 1
+fi
+
+DMG_NAME="PromptFlow-${VERSION}.dmg"
+DMG_PATH="$BUILD_DIR/$DMG_NAME"
+
+# 2. Cleanup
+echo "Cleaning up $BUILD_DIR..."
+rm -rf "$BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+# 3. Build & Archive
+echo "Archiving PromptFlow version $VERSION..."
+xcodebuild archive \
+    -project "$PROJECT" \
+    -scheme "$SCHEME" \
+    -configuration Release \
+    -archivePath "$ARCHIVE_PATH"
+
+# 4. Create DMG
+echo "Creating $DMG_NAME..."
+/opt/homebrew/bin/create-dmg \
+    --volname "PromptFlow" \
+    --window-pos 200 120 \
+    --window-size 600 400 \
+    --icon-size 100 \
+    --icon "PromptFlow.app" 150 190 \
+    --hide-extension "PromptFlow.app" \
+    --app-drop-link 450 190 \
+    "$DMG_PATH" \
+    "$APP_PATH"
+
+echo "--------------------------------------------------"
+echo "Success! DMG created at: $DMG_PATH"
