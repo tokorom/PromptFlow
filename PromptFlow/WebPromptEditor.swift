@@ -28,7 +28,7 @@ struct WebPromptEditor: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
-        webView.loadHTMLString(Self.editorHTML, baseURL: nil)
+        webView.loadHTMLString(Self.editorHTML, baseURL: Bundle.main.resourceURL)
 
         // Enable developer tools to help debugging
         webView.configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
@@ -109,6 +109,9 @@ extension WebPromptEditor {
                 parent.onSubmit()
             case "copyAll":
                 parent.onCopyAll()
+            case "editorLoadFailed":
+                let message = body["message"] as? String ?? "Unknown error"
+                print("PromptFlow editor fell back to textarea: \(message)")
             default:
                 break
             }
@@ -195,7 +198,8 @@ private extension WebPromptEditor {
     </head>
     <body>
       <div id="editor"></div>
-      <script type="module">
+      <script src="PromptFlowEditorBundle.js"></script>
+      <script>
         const bridge = window.webkit?.messageHandlers?.promptFlow;
         const post = (message) => bridge?.postMessage(message);
 
@@ -203,7 +207,6 @@ private extension WebPromptEditor {
         let textarea = null;
         let vimCompartment = null;
         let vimExtensionFactory = null;
-        let vimModule = null;
 
         let pendingText = "";
         let pendingVim = false;
@@ -278,18 +281,28 @@ private extension WebPromptEditor {
           }
         };
 
-        const setupCodeMirror = async () => {
-          const stateModule = await import("https://esm.sh/@codemirror/state@6.5.2");
-          const viewModule = await import("https://esm.sh/@codemirror/view@6.36.8");
-          const commandsModule = await import("https://esm.sh/@codemirror/commands@6.8.1");
-          const markdownModule = await import("https://esm.sh/@codemirror/lang-markdown@6.3.3");
-          vimModule = await import("https://esm.sh/@replit/codemirror-vim@6.2.1");
+        const setupCodeMirror = () => {
+          const modules = window.PromptFlowEditorBundle;
+          if (!modules) {
+            throw new Error("PromptFlowEditorBundle.js was not loaded");
+          }
 
-          const { EditorState, Compartment } = stateModule;
-          const { EditorView, keymap, lineNumbers, highlightActiveLine, placeholder, drawSelection } = viewModule;
-          const { defaultKeymap, history, historyKeymap, indentWithTab } = commandsModule;
-          const { markdown } = markdownModule;
-          const { vim } = vimModule;
+          const {
+            EditorState,
+            Compartment,
+            EditorView,
+            keymap,
+            lineNumbers,
+            highlightActiveLine,
+            placeholder,
+            drawSelection,
+            defaultKeymap,
+            history,
+            historyKeymap,
+            indentWithTab,
+            markdown,
+            vim
+          } = modules;
 
           vimCompartment = new Compartment();
           vimExtensionFactory = vim;
@@ -390,8 +403,9 @@ private extension WebPromptEditor {
         };
 
         try {
-          await setupCodeMirror();
+          setupCodeMirror();
         } catch (error) {
+          post({ action: "editorLoadFailed", message: error?.message ?? String(error) });
           setupFallbackEditor();
         }
 

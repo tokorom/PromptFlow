@@ -27,7 +27,7 @@ struct PromptFlowApp: App {
         .commands {
             PromptCommands(model: model)
         }
-        .onChange(of: model.shouldOpenMainWindow) { newValue in
+        .onChange(of: model.shouldOpenMainWindow) { _, newValue in
             if newValue {
                 openWindow(id: "main")
                 model.shouldOpenMainWindow = false
