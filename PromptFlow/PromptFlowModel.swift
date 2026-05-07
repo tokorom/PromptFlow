@@ -145,15 +145,13 @@ final class PromptFlowModel: ObservableObject {
         noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
         NSApp.activate(ignoringOtherApps: true)
         
-        let nonSettingsWindows = NSApp.windows.filter { window in
-            let title = window.title
-            let isSettings = title == "Settings" || title == "設定"
-            return !isSettings && window.canBecomeKey
+        let mainWindows = NSApp.windows.filter { window in
+            window.identifier?.rawValue.hasPrefix("main") == true
         }
-        if nonSettingsWindows.isEmpty {
+        if mainWindows.isEmpty {
             shouldOpenMainWindow = true
         } else {
-            for window in nonSettingsWindows {
+            for window in mainWindows {
                 window.makeKeyAndOrderFront(nil)
             }
         }
