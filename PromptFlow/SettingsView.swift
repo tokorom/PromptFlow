@@ -15,6 +15,15 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-")")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("General") {
                 Picker("Hotkey", selection: $settings.hotkey) {
                     ForEach(HotkeyTrigger.allCases) { trigger in
