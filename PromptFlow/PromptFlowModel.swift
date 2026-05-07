@@ -227,10 +227,25 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
-    func deleteHistoryItem(_ entry: PromptHistory) {
-        if let index = history.firstIndex(where: { $0.id == entry.id }) {
-            deleteHistory(at: IndexSet(integer: index))
+    func deleteHistoryItems(_ entries: Set<PromptHistory>) {
+        let ids = Set(entries.map { $0.id })
+        history.removeAll { ids.contains($0.id) }
+        saveHistory()
+        
+        // Clear selection if the deleted item was selected
+        selection = selection.filter { sel in
+            if case .history(let id) = sel {
+                return !ids.contains(id)
+            }
+            return true
         }
+        if selection.isEmpty {
+            selection = [.current]
+        }
+    }
+
+    func deleteHistoryItem(_ entry: PromptHistory) {
+        deleteHistoryItems([entry])
     }
 
     private func shrinkHistory(to limit: Int) {

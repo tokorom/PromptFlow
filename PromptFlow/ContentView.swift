@@ -11,7 +11,7 @@ struct ContentView: View {
     @EnvironmentObject private var model: PromptFlowModel
     @EnvironmentObject private var settings: AppSettings
 
-    @State private var entryToDelete: PromptHistory?
+    @State private var entriesToDelete: Set<PromptHistory> = []
     @State private var showingDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
@@ -29,21 +29,21 @@ struct ContentView: View {
         }
         .frame(minWidth: 760, minHeight: 480)
         .confirmationDialog(
-            "Are you sure you want to delete this history item?",
+            entriesToDelete.count > 1
+                ? "Are you sure you want to delete \(entriesToDelete.count) history items?"
+                : "Are you sure you want to delete this history item?",
             isPresented: $showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                if let entry = entryToDelete {
-                    model.deleteHistoryItem(entry)
-                }
-                entryToDelete = nil
+                model.deleteHistoryItems(entriesToDelete)
+                entriesToDelete = []
             }
             Button("Cancel", role: .cancel) {
-                entryToDelete = nil
+                entriesToDelete = []
             }
         } message: {
-            if let entry = entryToDelete {
+            if entriesToDelete.count == 1, let entry = entriesToDelete.first {
                 Text(entry.text)
                     .lineLimit(2)
             }
@@ -79,14 +79,25 @@ struct ContentView: View {
                         entry: entry,
                         isEditing: settings.historyEditingMode,
                         onDelete: {
-                            entryToDelete = entry
+                            entriesToDelete = [entry]
                             showingDeleteConfirmation = true
                         }
                     )
                     .tag(SidebarSelection.history(entry.id))
                     .contextMenu {
                         Button(role: .destructive) {
-                            entryToDelete = entry
+                            let selectedHistory = model.selection.compactMap { sel -> PromptHistory? in
+                                if case .history(let id) = sel {
+                                    return model.history.first(where: { $0.id == id })
+                                }
+                                return nil
+                            }
+                            
+                            if !selectedHistory.isEmpty && selectedHistory.contains(where: { $0.id == entry.id }) {
+                                entriesToDelete = Set(selectedHistory)
+                            } else {
+                                entriesToDelete = [entry]
+                            }
                             showingDeleteConfirmation = true
                         } label: {
                             Label("Delete", systemImage: "trash")
@@ -94,10 +105,8 @@ struct ContentView: View {
                     }
                 }
                 .onDelete { offsets in
-                    if let index = offsets.first {
-                        entryToDelete = model.history[index]
-                        showingDeleteConfirmation = true
-                    }
+                    entriesToDelete = Set(offsets.map { model.history[$0] })
+                    showingDeleteConfirmation = true
                 }
             } header: {
                 HStack {
@@ -117,12 +126,15 @@ struct ContentView: View {
         .focused($isListFocused)
         .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         .onDeleteCommand {
-            if let lastSelection = model.selection.first {
-                if case .history(let id) = lastSelection,
-                   let entry = model.history.first(where: { $0.id == id }) {
-                    entryToDelete = entry
-                    showingDeleteConfirmation = true
+            let selectedHistory = model.selection.compactMap { sel -> PromptHistory? in
+                if case .history(let id) = sel {
+                    return model.history.first(where: { $0.id == id })
                 }
+                return nil
+            }
+            if !selectedHistory.isEmpty {
+                entriesToDelete = Set(selectedHistory)
+                showingDeleteConfirmation = true
             }
         }
     }
