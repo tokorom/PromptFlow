@@ -72,12 +72,19 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var sendEnterAfterSubmit: Bool {
+        didSet {
+            UserDefaults.standard.set(sendEnterAfterSubmit, forKey: Self.sendEnterAfterSubmitKey)
+        }
+    }
+
     @Published var historyEditingMode: Bool = false
 
     private static let hotkeyKey = "hotkeyTrigger"
     private static let vimKeyBindingsKey = "usesVimKeyBindings"
     private static let historyLimitKey = "historyLimit"
     private static let launchAtLoginKey = "launchAtLogin"
+    private static let sendEnterAfterSubmitKey = "sendEnterAfterSubmit"
 
     init(userDefaults: UserDefaults = .standard) {
         let rawHotkey = userDefaults.string(forKey: Self.hotkeyKey)
@@ -91,6 +98,7 @@ final class AppSettings: ObservableObject {
         historyLimit = limit
         
         launchAtLogin = userDefaults.bool(forKey: Self.launchAtLoginKey)
+        sendEnterAfterSubmit = userDefaults.bool(forKey: Self.sendEnterAfterSubmitKey)
     }
 
     private func updateLaunchAtLogin() {

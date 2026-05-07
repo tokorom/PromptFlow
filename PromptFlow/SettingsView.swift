@@ -29,6 +29,10 @@ struct SettingsView: View {
                 Toggle("Launch at login", isOn: $settings.launchAtLogin)
             }
 
+            Section("Submit") {
+                Toggle("Send Enter after Submit", isOn: $settings.sendEnterAfterSubmit)
+            }
+
             Section("History") {
                 Stepper("History Limit: \(settings.historyLimit)", value: $settings.historyLimit, in: 10...1000, step: 10)
                 

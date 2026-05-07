@@ -204,6 +204,12 @@ final class PromptFlowModel: ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             Self.postPasteShortcut()
+            
+            if self.settings?.sendEnterAfterSubmit == true {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    Self.postEnterKey()
+                }
+            }
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -309,6 +315,19 @@ final class PromptFlowModel: ObservableObject {
 
         keyDown?.flags = .maskCommand
         keyUp?.flags = .maskCommand
+
+        keyDown?.post(tap: .cghidEventTap)
+        keyUp?.post(tap: .cghidEventTap)
+    }
+
+    private static func postEnterKey() {
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            return
+        }
+
+        let enterKeyCode: CGKeyCode = 36
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: enterKeyCode, keyDown: true)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: enterKeyCode, keyDown: false)
 
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
