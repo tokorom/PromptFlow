@@ -64,6 +64,12 @@ struct ContentView: View {
             }
             .keyboardShortcut("e", modifiers: .command)
             .opacity(0)
+            
+            Button("") {
+                model.returnToTarget()
+            }
+            .keyboardShortcut(.cancelAction)
+            .opacity(0)
         }
     }
 
