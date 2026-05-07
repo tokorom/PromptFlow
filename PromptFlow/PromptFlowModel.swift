@@ -130,19 +130,21 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
-    func openFromShortcut() {
-        if NSApp.isActive {
+    func openFromShortcut(isHotkey: Bool = true) {
+        if isHotkey && NSApp.isActive {
             returnToTarget()
             return
         }
 
-        if !currentPromptBuffer.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
-            addToHistory(currentPromptBuffer)
-            currentPromptBuffer = ""
+        if isHotkey {
+            if !currentPromptBuffer.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
+                addToHistory(currentPromptBuffer)
+                currentPromptBuffer = ""
+            }
+            
+            selection = [.current]
+            promptText = currentPromptBuffer
         }
-        
-        selection = [.current]
-        promptText = currentPromptBuffer
 
         noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
         NSApp.activate(ignoringOtherApps: true)
@@ -161,7 +163,7 @@ final class PromptFlowModel: ObservableObject {
         // Use a slight delay to ensure SwiftUI finished updating the view hierarchy
         // before requesting focus on the WebView.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.focusEditor(enterVimInsertMode: true)
+            self.focusEditor(enterVimInsertMode: isHotkey)
         }
     }
 
