@@ -15,18 +15,19 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Hotkey") {
+            Section("General") {
                 Picker("Hotkey", selection: $settings.hotkey) {
                     ForEach(HotkeyTrigger.allCases) { trigger in
                         Text(trigger.title)
                             .tag(trigger)
                     }
                 }
+
+                Toggle("Launch at login", isOn: $settings.launchAtLogin)
             }
 
             Section("Editor") {
                 Toggle("Vim key bindings", isOn: $settings.usesVimKeyBindings)
-                Toggle("Launch at login", isOn: $settings.launchAtLogin)
             }
 
             Section("Submit") {
@@ -35,7 +36,7 @@ struct SettingsView: View {
 
             Section("History") {
                 Stepper("History Limit: \(settings.historyLimit)", value: $settings.historyLimit, in: 10...1000, step: 10)
-                
+
                 Button("Clear History", role: .destructive) {
                     showingClearConfirmation = true
                 }
