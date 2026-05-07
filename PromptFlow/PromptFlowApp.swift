@@ -56,7 +56,6 @@ struct PromptCommands: Commands {
             Button("Copy") {
                 model.copyPrompt()
             }
-            .keyboardShortcut("c", modifiers: .command)
             .disabled(!model.isEditorSelectionEmpty)
         }
     }

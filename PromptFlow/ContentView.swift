@@ -215,7 +215,6 @@ struct ContentView: View {
                     Text("Copy")
                 }
             }
-            .keyboardShortcut("c", modifiers: .command)
             .disabled(!model.isEditorSelectionEmpty || model.isCopying)
             .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
 
