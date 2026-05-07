@@ -169,6 +169,14 @@ private extension WebPromptEditor {
           line-height: 1.55;
         }
 
+        .cm-vim-panel {
+          border-top: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+          color: GrayText;
+          font-family: var(--editor-font);
+          font-size: 12px;
+          padding: 3px 8px;
+        }
+
         textarea.fallback-editor {
           width: 100%;
           height: 100%;
@@ -200,6 +208,7 @@ private extension WebPromptEditor {
         let pendingText = "";
         let pendingVim = false;
         let pendingFocus = false;
+        let appliedVim = null;
 
         const hasSelection = () => {
           if (view) {
@@ -236,15 +245,10 @@ private extension WebPromptEditor {
               return;
             }
 
-            // Explicitly handle Escape for Vim mode
-            if (key === "Escape" && pendingVim && view && vimModule) {
-              vimModule.Vim.handleKey(view, '<Esc>');
-              event.preventDefault();
-              event.stopPropagation();
-              return;
-            }
           }, true); // Use capture phase to catch it early
         };
+
+        const vimExtension = () => vimExtensionFactory({ status: true });
 
         const applyState = () => {
           if (view) {
@@ -253,10 +257,11 @@ private extension WebPromptEditor {
                 changes: { from: 0, to: view.state.doc.length, insert: pendingText }
               });
             }
-            if (vimCompartment && vimExtensionFactory) {
+            if (vimCompartment && vimExtensionFactory && appliedVim !== pendingVim) {
               view.dispatch({
-                effects: vimCompartment.reconfigure(pendingVim ? vimExtensionFactory() : [])
+                effects: vimCompartment.reconfigure(pendingVim ? vimExtension() : [])
               });
+              appliedVim = pendingVim;
             }
             if (pendingFocus) {
               view.focus();
@@ -281,7 +286,7 @@ private extension WebPromptEditor {
           vimModule = await import("https://esm.sh/@replit/codemirror-vim@6.2.1");
 
           const { EditorState, Compartment } = stateModule;
-          const { EditorView, keymap, lineNumbers, highlightActiveLine, placeholder } = viewModule;
+          const { EditorView, keymap, lineNumbers, highlightActiveLine, placeholder, drawSelection } = viewModule;
           const { defaultKeymap, history, historyKeymap, indentWithTab } = commandsModule;
           const { markdown } = markdownModule;
           const { vim } = vimModule;
@@ -330,10 +335,11 @@ private extension WebPromptEditor {
           const state = EditorState.create({
             doc: pendingText,
             extensions: [
-              vimCompartment.of(pendingVim ? vimExtensionFactory() : []),
+              vimCompartment.of(pendingVim ? vimExtension() : []),
               lineNumbers(),
               history(),
               markdown(),
+              drawSelection(),
               highlightActiveLine(),
               placeholder("Write a prompt..."),
               theme,
@@ -347,6 +353,7 @@ private extension WebPromptEditor {
             parent: document.getElementById("editor")
           });
 
+          appliedVim = pendingVim;
           installCommandShortcuts(view.dom);
           applyState();
         };
