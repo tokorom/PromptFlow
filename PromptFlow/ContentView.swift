@@ -226,14 +226,26 @@ struct ContentView: View {
                         Button {
                             model.setTarget(app)
                         } label: {
-                            Text(app.localizedName ?? "Unknown App")
+                            HStack {
+                                if let icon = app.icon {
+                                    Image(nsImage: icon)
+                                }
+                                Text(app.localizedName ?? "Unknown App")
+                            }
                         }
                     }
                 } label: {
-                    Text(model.statusText)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let icon = model.previousApplicationIcon {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .frame(width: 16, height: 16)
+                        }
+                        Text(model.statusText)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()

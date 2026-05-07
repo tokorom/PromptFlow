@@ -41,6 +41,7 @@ final class PromptFlowModel: ObservableObject {
         }
     }
     @Published private(set) var previousApplicationName: String?
+    @Published private(set) var previousApplicationIcon: NSImage?
     @Published private(set) var targetHistory: [NSRunningApplication] = []
     @Published private(set) var history: [PromptHistory] = []
     @Published private(set) var isSubmitting = false
@@ -117,6 +118,7 @@ final class PromptFlowModel: ObservableObject {
     func setTarget(_ application: NSRunningApplication) {
         previousApplication = application
         previousApplicationName = application.localizedName
+        previousApplicationIcon = application.icon
 
         // Update history: remove if exists, insert at front, limit to 10
         if let index = targetHistory.firstIndex(where: { $0.bundleIdentifier == application.bundleIdentifier }) {
