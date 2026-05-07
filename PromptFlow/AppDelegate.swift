@@ -49,8 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         Task { @MainActor [weak model] in
-            // When activated via Dock or clicking the icon, we don't want to clear text or force Vim Insert mode.
-            model?.openFromShortcut(isHotkey: false)
+            model?.focusEditor()
         }
     }
 
@@ -63,9 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        Task { @MainActor [weak model] in
-            model?.openFromShortcut(isHotkey: false)
+        if !flag {
+            Task { @MainActor [weak model] in
+                model?.openFromShortcut(isHotkey: false)
+            }
+            return false
         }
-        return false
+        return true
     }
 }
