@@ -48,9 +48,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
-        Task { @MainActor [weak model] in
-            model?.focusEditor()
-        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
