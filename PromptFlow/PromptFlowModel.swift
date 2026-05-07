@@ -34,7 +34,8 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var currentPromptBuffer = ""
     @Published var isEditorSelectionEmpty = true
     @Published private(set) var focusRequestID = 0
-    @Published var selection: SidebarSelection = .current {
+    @Published private(set) var focusListRequestID = 0
+    @Published var selection: Set<SidebarSelection> = [.current] {
         didSet {
             updatePromptTextFromSelection()
         }
@@ -50,7 +51,7 @@ final class PromptFlowModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     var isCurrentPromptSelected: Bool {
-        selection == .current
+        selection.contains(.current)
     }
 
     var canSubmit: Bool {
@@ -70,7 +71,9 @@ final class PromptFlowModel: ObservableObject {
     }
 
     private func updatePromptTextFromSelection() {
-        switch selection {
+        guard let lastSelection = selection.first else { return }
+
+        switch lastSelection {
         case .current:
             promptText = currentPromptBuffer
         case .history(let id):
@@ -83,7 +86,7 @@ final class PromptFlowModel: ObservableObject {
     func updateTextFromEditor(_ text: String) {
         if promptText != text {
             promptText = text
-            if selection == .current {
+            if isCurrentPromptSelected {
                 currentPromptBuffer = text
             }
         }
@@ -133,7 +136,7 @@ final class PromptFlowModel: ObservableObject {
             currentPromptBuffer = ""
         }
         
-        selection = .current
+        selection = [.current]
         promptText = currentPromptBuffer
 
         noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
@@ -157,13 +160,17 @@ final class PromptFlowModel: ObservableObject {
         focusRequestID += 1
     }
 
+    func focusList() {
+        focusListRequestID += 1
+    }
+
     func copyPrompt() {
         isCopying = true
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(promptText, forType: .string)
         addToHistory(promptText)
 
-        if selection == .current {
+        if isCurrentPromptSelected {
             currentPromptBuffer = ""
             promptText = ""
         }
@@ -209,10 +216,14 @@ final class PromptFlowModel: ObservableObject {
         saveHistory()
         
         // Clear selection if the deleted item was selected
-        if case .history(let id) = selection {
-            if !history.contains(where: { $0.id == id }) {
-                selection = .current
+        selection = selection.filter { sel in
+            if case .history(let id) = sel {
+                return history.contains(where: { $0.id == id })
             }
+            return true
+        }
+        if selection.isEmpty {
+            selection = [.current]
         }
     }
 

@@ -13,6 +13,7 @@ struct ContentView: View {
 
     @State private var entryToDelete: PromptHistory?
     @State private var showingDeleteConfirmation = false
+    @FocusState private var isListFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,6 +47,22 @@ struct ContentView: View {
                 Text(entry.text)
                     .lineLimit(2)
             }
+        }
+        .onChange(of: model.focusListRequestID) { _ in
+            isListFocused = true
+        }
+        .background {
+            Button("") {
+                model.focusList()
+            }
+            .keyboardShortcut("l", modifiers: .command)
+            .opacity(0)
+            
+            Button("") {
+                model.focusEditor()
+            }
+            .keyboardShortcut("e", modifiers: .command)
+            .opacity(0)
         }
     }
 
@@ -97,12 +114,15 @@ struct ContentView: View {
                 }
             }
         }
+        .focused($isListFocused)
         .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         .onDeleteCommand {
-            if case .history(let id) = model.selection,
-               let entry = model.history.first(where: { $0.id == id }) {
-                entryToDelete = entry
-                showingDeleteConfirmation = true
+            if let lastSelection = model.selection.first {
+                if case .history(let id) = lastSelection,
+                   let entry = model.history.first(where: { $0.id == id }) {
+                    entryToDelete = entry
+                    showingDeleteConfirmation = true
+                }
             }
         }
     }
@@ -110,7 +130,9 @@ struct ContentView: View {
     private var editorPane: some View {
         VStack(spacing: 0) {
             HStack {
-                if case .history(let id) = model.selection, let entry = model.history.first(where: { $0.id == id }) {
+                if let lastSelection = model.selection.first,
+                   case .history(let id) = lastSelection,
+                   let entry = model.history.first(where: { $0.id == id }) {
                     Text(entry.date.formatted(date: .numeric, time: .shortened))
                         .font(.headline)
                 } else {
