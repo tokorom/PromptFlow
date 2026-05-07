@@ -64,7 +64,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
             for window in sender.windows {
-                if window.title != "Settings" {
+                let title = window.title
+                let isSettings = title == "Settings" || title == "設定"
+                if !isSettings && window.canBecomeKey {
                     window.makeKeyAndOrderFront(nil)
                     return false
                 }
