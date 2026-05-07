@@ -143,8 +143,11 @@ final class PromptFlowModel: ObservableObject {
 
         noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
         NSApp.activate(ignoringOtherApps: true)
+        
         for window in NSApp.windows {
-            window.makeKeyAndOrderFront(nil)
+            if window.title != "Settings" {
+                window.makeKeyAndOrderFront(nil)
+            }
         }
         
         // Use a slight delay to ensure SwiftUI finished updating the view hierarchy
