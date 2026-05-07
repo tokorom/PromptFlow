@@ -5,9 +5,10 @@ github_release() {
     local tag="$2"
     local token="$3"
     local release_note_file="$4"
+    local asset_path="$5"
     
     if [[ -z "$repo" || -z "$tag" || -z "$token" || -z "$release_note_file" ]]; then
-        echo "Usage: create_github_release <repo> <tag> <token> <release_note_file>" >&2
+        echo "Usage: github_release <repo> <tag> <token> <release_note_file> [asset_path]" >&2
         return 1
     fi
 
@@ -25,5 +26,23 @@ github_release() {
             \"prerelease\": false
         }")
 
-    echo $response
+    echo "Release creation response: $response"
+
+    # Upload asset if provided
+    if [[ -n "$asset_path" && -f "$asset_path" ]]; then
+        local release_id=$(echo $response | grep -oE '"id": [0-9]+' | head -n 1 | awk '{print $2}')
+        if [[ -z "$release_id" ]]; then
+            echo "Error: Could not extract release ID from response." >&2
+            return 1
+        fi
+
+        local asset_name=$(basename "$asset_path")
+        local upload_url="https://uploads.github.com/repos/$repo/releases/$release_id/assets?name=$asset_name"
+
+        echo "Uploading asset $asset_name to release $release_id..."
+        curl -s -X POST "$upload_url" \
+            -H "Authorization: token $token" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$asset_path"
+    fi
 }
