@@ -65,11 +65,13 @@ struct ContentView: View {
             .keyboardShortcut("e", modifiers: .command)
             .opacity(0)
             
-            Button("") {
-                model.returnToTarget()
+            if !settings.usesVimKeyBindings {
+                Button("") {
+                    model.returnToTarget()
+                }
+                .keyboardShortcut(.cancelAction)
+                .opacity(0)
             }
-            .keyboardShortcut(.cancelAction)
-            .opacity(0)
         }
     }
 

@@ -121,7 +121,8 @@ extension WebPromptEditor {
         }
 
         func callJavaScriptFunction(_ name: String, argument: Bool) {
-            callJavaScript("window.promptFlowEditor?.\(name)(\(argument ? "true" : "false"));")
+            let boolString = argument ? "true" : "false"
+            callJavaScript("window.promptFlowEditor?.\(name)(\(boolString));")
         }
 
         func callJavaScript(_ script: String) {
@@ -192,6 +193,10 @@ private extension WebPromptEditor {
         let vimCompartment = null;
         let vimExtensionFactory = null;
 
+        let pendingText = "";
+        let pendingVim = false;
+        let pendingFocus = false;
+
         const hasSelection = () => {
           if (view) {
             return view.state.selection.ranges.some((range) => !range.empty);
@@ -225,6 +230,33 @@ private extension WebPromptEditor {
               post({ action: "copyAll" });
             }
           });
+        };
+
+        const applyState = () => {
+          if (view) {
+            if (view.state.doc.toString() !== pendingText) {
+              view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: pendingText }
+              });
+            }
+            if (vimCompartment && vimExtensionFactory) {
+              view.dispatch({
+                effects: vimCompartment.reconfigure(pendingVim ? vimExtensionFactory() : [])
+              });
+            }
+            if (pendingFocus) {
+              view.focus();
+              pendingFocus = false;
+            }
+          } else if (textarea) {
+            if (textarea.value !== pendingText) {
+              textarea.value = pendingText;
+            }
+            if (pendingFocus) {
+              textarea.focus();
+              pendingFocus = false;
+            }
+          }
         };
 
         const setupCodeMirror = async () => {
@@ -278,8 +310,9 @@ private extension WebPromptEditor {
           });
 
           const state = EditorState.create({
-            doc: "",
+            doc: pendingText,
             extensions: [
+              vimCompartment.of(pendingVim ? vimExtensionFactory() : []),
               lineNumbers(),
               history(),
               markdown(),
@@ -288,7 +321,6 @@ private extension WebPromptEditor {
               theme,
               updateListener,
               keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
-              vimCompartment.of([])
             ]
           });
 
@@ -298,6 +330,7 @@ private extension WebPromptEditor {
           });
 
           installCommandShortcuts(view.dom);
+          applyState();
         };
 
         const setupFallbackEditor = () => {
@@ -312,31 +345,21 @@ private extension WebPromptEditor {
           textarea.addEventListener("keyup", notifySelection);
           textarea.addEventListener("mouseup", notifySelection);
           installCommandShortcuts(textarea);
+          applyState();
         };
 
         window.promptFlowEditor = {
           setText(value) {
-            if (view && view.state.doc.toString() !== value) {
-              view.dispatch({
-                changes: { from: 0, to: view.state.doc.length, insert: value }
-              });
-            } else if (textarea && textarea.value !== value) {
-              textarea.value = value;
-            }
+            pendingText = value;
+            applyState();
           },
           setVim(enabled) {
-            if (view && vimCompartment && vimExtensionFactory) {
-              view.dispatch({
-                effects: vimCompartment.reconfigure(enabled ? vimExtensionFactory() : [])
-              });
-            }
+            pendingVim = enabled;
+            applyState();
           },
           focusEditor() {
-            if (view) {
-              view.focus();
-            } else if (textarea) {
-              textarea.focus();
-            }
+            pendingFocus = true;
+            applyState();
             notifySelection();
           }
         };
