@@ -66,7 +66,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             HStack {
                 if case .history(let id) = model.selection, let entry = model.history.first(where: { $0.id == id }) {
-                    Text(entry.date, style: .date)
+                    Text(entry.date.formatted(date: .numeric, time: .shortened))
                         .font(.headline)
                 } else {
                     Text("Current Prompt")
@@ -177,7 +177,7 @@ struct HistoryRow: View {
                 Text(entry.text)
                     .lineLimit(2)
                     .font(.subheadline)
-                Text(entry.date, style: .date)
+                Text(entry.date.formatted(date: .numeric, time: .shortened))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
