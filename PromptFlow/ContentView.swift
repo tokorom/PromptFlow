@@ -215,7 +215,7 @@ struct ContentView: View {
                     Text("Copy")
                 }
             }
-            .disabled(!model.isEditorSelectionEmpty || model.isCopying)
+            .disabled(!model.isEditorSelectionEmpty || model.isCopying || model.promptText.isEmpty)
             .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
 
             Spacer()

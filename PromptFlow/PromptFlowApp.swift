@@ -56,7 +56,7 @@ struct PromptCommands: Commands {
             Button("Copy") {
                 model.copyPrompt()
             }
-            .disabled(!model.isEditorSelectionEmpty)
+            .disabled(!model.isEditorSelectionEmpty || model.promptText.isEmpty)
         }
     }
 }
