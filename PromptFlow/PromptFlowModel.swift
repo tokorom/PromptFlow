@@ -73,12 +73,14 @@ final class PromptFlowModel: ObservableObject {
     private func updatePromptTextFromSelection() {
         guard let lastSelection = selection.first else { return }
 
-        switch lastSelection {
-        case .current:
-            promptText = currentPromptBuffer
-        case .history(let id):
-            if let entry = history.first(where: { $0.id == id }) {
-                promptText = entry.text
+        Task { @MainActor in
+            switch lastSelection {
+            case .current:
+                promptText = currentPromptBuffer
+            case .history(let id):
+                if let entry = history.first(where: { $0.id == id }) {
+                    promptText = entry.text
+                }
             }
         }
     }
