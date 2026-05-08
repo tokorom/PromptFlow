@@ -188,12 +188,15 @@ private extension WebPromptEditor {
         }
 
         .cm-editor.line-wrapping .cm-content {
-          word-break: break-all;
-          overflow-wrap: anywhere;
+          white-space: pre-wrap !important;
+          white-space: break-spaces !important;
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+          flex-shrink: 1 !important;
         }
 
         .cm-editor.line-wrapping .cm-scroller {
-          overflow-x: hidden;
+          overflow-x: hidden !important;
         }
 
         .cm-vim-panel {
@@ -296,7 +299,7 @@ private extension WebPromptEditor {
             }
             if (lineWrappingCompartment && appliedLineWrapping !== pendingLineWrapping) {
               view.dispatch({
-                effects: lineWrappingCompartment.reconfigure(pendingLineWrapping ? EditorView.lineWrapping : [])
+                effects: lineWrappingCompartment.reconfigure([])
               });
               appliedLineWrapping = pendingLineWrapping;
               if (appliedLineWrapping) {
@@ -415,7 +418,7 @@ private extension WebPromptEditor {
             doc: pendingText,
             extensions: [
               vimCompartment.of(pendingVim ? vimExtension() : []),
-              lineWrappingCompartment.of(pendingLineWrapping ? EditorView.lineWrapping : []),
+              lineWrappingCompartment.of([]),
               lineNumbers(),
               history(),
               markdown(),
