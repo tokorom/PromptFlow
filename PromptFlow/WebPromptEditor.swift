@@ -164,7 +164,10 @@ private extension WebPromptEditor {
 
         html, body, #editor {
           height: 100%;
+          width: 100%;
           margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
 
         body {
@@ -175,12 +178,22 @@ private extension WebPromptEditor {
 
         .cm-editor {
           height: 100%;
+          width: 100%;
           font-family: var(--editor-font);
           font-size: 14px;
         }
 
         .cm-scroller {
           line-height: 1.55;
+        }
+
+        .cm-editor.line-wrapping .cm-content {
+          word-break: break-all;
+          overflow-wrap: anywhere;
+        }
+
+        .cm-editor.line-wrapping .cm-scroller {
+          overflow-x: hidden;
         }
 
         .cm-vim-panel {
@@ -286,6 +299,11 @@ private extension WebPromptEditor {
                 effects: lineWrappingCompartment.reconfigure(pendingLineWrapping ? EditorView.lineWrapping : [])
               });
               appliedLineWrapping = pendingLineWrapping;
+              if (appliedLineWrapping) {
+                view.dom.classList.add("line-wrapping");
+              } else {
+                view.dom.classList.remove("line-wrapping");
+              }
             }
             if (pendingFocus) {
               view.focus();
@@ -417,6 +435,9 @@ private extension WebPromptEditor {
 
           appliedVim = pendingVim;
           appliedLineWrapping = pendingLineWrapping;
+          if (appliedLineWrapping) {
+            view.dom.classList.add("line-wrapping");
+          }
           installCommandShortcuts(view.dom);
           applyState();
         };

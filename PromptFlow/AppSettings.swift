@@ -106,7 +106,12 @@ final class AppSettings: ObservableObject {
         
         launchAtLogin = userDefaults.bool(forKey: Self.launchAtLoginKey)
         sendEnterAfterSubmit = userDefaults.bool(forKey: Self.sendEnterAfterSubmitKey)
-        lineWrapping = userDefaults.bool(forKey: Self.lineWrappingKey)
+        
+        if userDefaults.object(forKey: Self.lineWrappingKey) == nil {
+            lineWrapping = true
+        } else {
+            lineWrapping = userDefaults.bool(forKey: Self.lineWrappingKey)
+        }
     }
 
     private func updateLaunchAtLogin() {
