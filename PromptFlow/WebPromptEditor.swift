@@ -187,18 +187,6 @@ private extension WebPromptEditor {
           line-height: 1.55;
         }
 
-        .cm-editor.line-wrapping .cm-content {
-          white-space: pre-wrap !important;
-          white-space: break-spaces !important;
-          word-break: break-word !important;
-          overflow-wrap: anywhere !important;
-          flex-shrink: 1 !important;
-        }
-
-        .cm-editor.line-wrapping .cm-scroller {
-          overflow-x: hidden !important;
-        }
-
         .cm-vim-panel {
           border-top: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
           color: GrayText;
@@ -299,14 +287,9 @@ private extension WebPromptEditor {
             }
             if (lineWrappingCompartment && appliedLineWrapping !== pendingLineWrapping) {
               view.dispatch({
-                effects: lineWrappingCompartment.reconfigure([])
+                effects: lineWrappingCompartment.reconfigure(pendingLineWrapping ? EditorView.lineWrapping : [])
               });
               appliedLineWrapping = pendingLineWrapping;
-              if (appliedLineWrapping) {
-                view.dom.classList.add("line-wrapping");
-              } else {
-                view.dom.classList.remove("line-wrapping");
-              }
             }
             if (pendingFocus) {
               view.focus();
@@ -418,7 +401,7 @@ private extension WebPromptEditor {
             doc: pendingText,
             extensions: [
               vimCompartment.of(pendingVim ? vimExtension() : []),
-              lineWrappingCompartment.of([]),
+              lineWrappingCompartment.of(pendingLineWrapping ? EditorView.lineWrapping : []),
               lineNumbers(),
               history(),
               markdown(),
@@ -438,9 +421,6 @@ private extension WebPromptEditor {
 
           appliedVim = pendingVim;
           appliedLineWrapping = pendingLineWrapping;
-          if (appliedLineWrapping) {
-            view.dom.classList.add("line-wrapping");
-          }
           installCommandShortcuts(view.dom);
           applyState();
         };
