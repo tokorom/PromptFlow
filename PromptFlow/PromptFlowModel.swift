@@ -92,6 +92,13 @@ final class PromptFlowModel: ObservableObject {
             promptText = text
             if isCurrentPromptSelected {
                 currentPromptBuffer = text
+            } else if selection.count == 1, case .history(let id) = selection.first {
+                if let index = history.firstIndex(where: { $0.id == id }) {
+                    if history[index].text != text {
+                        history[index] = PromptHistory(id: id, text: text, date: Date())
+                        saveHistory()
+                    }
+                }
             }
         }
     }
@@ -187,7 +194,12 @@ final class PromptFlowModel: ObservableObject {
         isCopying = true
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(promptText, forType: .string)
-        addToHistory(promptText)
+
+        var updateID: UUID? = nil
+        if case .history(let id) = selection.first {
+            updateID = id
+        }
+        addToHistory(promptText, id: updateID)
 
         if isCurrentPromptSelected {
             currentPromptBuffer = ""
@@ -223,17 +235,24 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
-    private func addToHistory(_ text: String) {
+    private func addToHistory(_ text: String, id: UUID? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        if let id = id {
+            history.removeAll { $0.id == id }
+        }
         if let existingIndex = history.firstIndex(where: { $0.text == text }) {
             history.remove(at: existingIndex)
         }
-        let entry = PromptHistory(text: text)
+        let entry = PromptHistory(id: id ?? UUID(), text: text)
         history.insert(entry, at: 0)
         shrinkHistory(to: settings?.historyLimit ?? 100)
         saveHistory()
+
+        if id != nil {
+            selection = [.history(entry.id)]
+        }
     }
 
     func deleteHistory(at offsets: IndexSet) {
