@@ -247,14 +247,21 @@ final class PromptFlowModel: ObservableObject {
             return
         }
 
-        setTarget(application)
+        updateTargetHistory(application)
+
+        if previousApplication == nil {
+            setTarget(application)
+        }
     }
 
     func setTarget(_ application: NSRunningApplication) {
         previousApplication = application
         previousApplicationName = application.localizedName
         previousApplicationIcon = application.icon
+        updateTargetHistory(application)
+    }
 
+    private func updateTargetHistory(_ application: NSRunningApplication) {
         // Update history: remove if exists, insert at front, limit to 10
         if let index = targetHistory.firstIndex(where: { $0.bundleIdentifier == application.bundleIdentifier }) {
             targetHistory.remove(at: index)
