@@ -23,15 +23,32 @@ struct PromptHistory: Identifiable, Codable, Hashable {
     }
 }
 
+struct PromptTemplate: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var text: String
+    var updatedAt: Date
+
+    init(id: UUID = UUID(), name: String, text: String, updatedAt: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.text = text
+        self.updatedAt = updatedAt
+    }
+}
+
 enum SidebarSelection: Hashable {
     case current
     case history(UUID)
+    case template(UUID)
+    case newTemplate
 }
 
 @MainActor
 final class PromptFlowModel: ObservableObject {
     @Published private(set) var promptText = ""
     @Published private(set) var currentPromptBuffer = ""
+    @Published var templateNameBuffer = ""
     @Published var isEditorSelectionEmpty = true
     @Published private(set) var focusRequestID = 0
     @Published private(set) var focusListRequestID = 0
@@ -44,6 +61,7 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var previousApplicationIcon: NSImage?
     @Published private(set) var targetHistory: [NSRunningApplication] = []
     @Published private(set) var history: [PromptHistory] = []
+    @Published private(set) var templates: [PromptTemplate] = []
     @Published private(set) var isSubmitting = false
     @Published private(set) var isCopying = false
     @Published var shouldOpenMainWindow = false
@@ -56,8 +74,18 @@ final class PromptFlowModel: ObservableObject {
         selection.contains(.current)
     }
 
+    var isTemplateSelected: Bool {
+        if let first = selection.first {
+            switch first {
+            case .template, .newTemplate: return true
+            default: return false
+            }
+        }
+        return false
+    }
+
     var canSubmit: Bool {
-        previousApplication != nil && !promptText.isEmpty
+        previousApplication != nil && !promptText.isEmpty && isCurrentPromptSelected
     }
 
     var statusText: String {
@@ -70,6 +98,7 @@ final class PromptFlowModel: ObservableObject {
 
     init() {
         loadHistory()
+        loadTemplates()
     }
 
     private func updatePromptTextFromSelection() {
@@ -83,6 +112,14 @@ final class PromptFlowModel: ObservableObject {
                 if let entry = history.first(where: { $0.id == id }) {
                     promptText = entry.text
                 }
+            case .template(let id):
+                if let template = templates.first(where: { $0.id == id }) {
+                    templateNameBuffer = template.name
+                    promptText = template.text
+                }
+            case .newTemplate:
+                templateNameBuffer = ""
+                promptText = ""
             }
         }
     }
@@ -99,7 +136,59 @@ final class PromptFlowModel: ObservableObject {
                         saveHistory()
                     }
                 }
+            } else if selection.count == 1, case .template(let id) = selection.first {
+                // For templates, we don't auto-save to allow cancel/discard if needed?
+                // But the requirement says "Save button for updating", so we just keep it in promptText for now.
             }
+        }
+    }
+
+    func saveTemplate() {
+        guard selection.count == 1, let first = selection.first else { return }
+        
+        switch first {
+        case .template(let id):
+            if let index = templates.firstIndex(where: { $0.id == id }) {
+                templates[index].name = templateNameBuffer
+                templates[index].text = promptText
+                templates[index].updatedAt = Date()
+                sortTemplates()
+                saveTemplates()
+            }
+        case .newTemplate:
+            let newTemplate = PromptTemplate(name: templateNameBuffer, text: promptText)
+            templates.insert(newTemplate, at: 0)
+            sortTemplates()
+            saveTemplates()
+            selection = [.template(newTemplate.id)]
+        default:
+            break
+        }
+    }
+
+    func applyTemplate() {
+        currentPromptBuffer = promptText
+        selection = [.current]
+        
+        // Update template's updatedAt to move it to top
+        if case .template(let id) = selection.first {
+            if let index = templates.firstIndex(where: { $0.id == id }) {
+                templates[index].updatedAt = Date()
+                sortTemplates()
+                saveTemplates()
+            }
+        }
+    }
+
+    private func sortTemplates() {
+        templates.sort { $0.updatedAt > $1.updatedAt }
+    }
+
+    func deleteTemplate(_ template: PromptTemplate) {
+        templates.removeAll { $0.id == template.id }
+        saveTemplates()
+        if case .template(let id) = selection.first, id == template.id {
+            selection = [.current]
         }
     }
 
@@ -334,6 +423,13 @@ final class PromptFlowModel: ObservableObject {
         return appSupport.appendingPathComponent("history.json")
     }
 
+    private var templatesURL: URL {
+        let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport.appendingPathComponent("templates.json")
+    }
+
     private func saveHistory() {
         do {
             let data = try JSONEncoder().encode(history)
@@ -349,6 +445,24 @@ final class PromptFlowModel: ObservableObject {
             history = try JSONDecoder().decode([PromptHistory].self, from: data)
         } catch {
             print("No history found or failed to load: \(error)")
+        }
+    }
+
+    private func saveTemplates() {
+        do {
+            let data = try JSONEncoder().encode(templates)
+            try data.write(to: templatesURL)
+        } catch {
+            print("Failed to save templates: \(error)")
+        }
+    }
+
+    private func loadTemplates() {
+        do {
+            let data = try Data(contentsOf: templatesURL)
+            templates = try JSONDecoder().decode([PromptTemplate].self, from: data)
+        } catch {
+            print("No templates found or failed to load: \(error)")
         }
     }
 

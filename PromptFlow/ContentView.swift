@@ -83,6 +83,32 @@ struct ContentView: View {
             }
 
             Section {
+                ForEach(model.templates) { template in
+                    TemplateRow(template: template)
+                        .tag(SidebarSelection.template(template.id))
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                model.deleteTemplate(template)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                }
+            } header: {
+                HStack {
+                    Text("Templates")
+                    Spacer()
+                    Button {
+                        model.selection = [.newTemplate]
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add Template")
+                }
+            }
+
+            Section {
                 ForEach(model.history) { entry in
                     HistoryRow(
                         entry: entry,
@@ -131,14 +157,6 @@ struct ContentView: View {
                 HStack {
                     Text("History")
                     Spacer()
-                    // Button {
-                    //     settings.historyEditingMode.toggle()
-                    // } label: {
-                    //     Image(systemName: settings.historyEditingMode ? "checkmark" : "trash")
-                    //         .foregroundStyle(settings.historyEditingMode ? Color.accentColor : Color.secondary)
-                    // }
-                    // .buttonStyle(.plain)
-                    // .help(settings.historyEditingMode ? "Done" : "Edit History")
                 }
             }
         }
@@ -161,7 +179,11 @@ struct ContentView: View {
     private var editorPane: some View {
         VStack(spacing: 0) {
             HStack {
-                if let lastSelection = model.selection.first,
+                if model.isTemplateSelected {
+                    TextField("Template Name", text: $model.templateNameBuffer)
+                        .textFieldStyle(.plain)
+                        .font(.headline)
+                } else if let lastSelection = model.selection.first,
                    case .history(let id) = lastSelection,
                    let entry = model.history.first(where: { $0.id == id }) {
                     Text(entry.date.formatted(date: .numeric, time: .shortened))
@@ -171,6 +193,22 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 Spacer()
+                if model.isTemplateSelected {
+                    HStack(spacing: 12) {
+                        Button("Apply") {
+                            model.applyTemplate()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.promptText.isEmpty)
+
+                        Button("Save") {
+                            model.saveTemplate()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(model.templateNameBuffer.isEmpty || model.promptText.isEmpty)
+                    }
+                    .padding(.trailing, 8)
+                }
                 if settings.usesVimKeyBindings {
                     Label("Vim", systemImage: "keyboard")
                         .font(.caption)
@@ -190,7 +228,7 @@ struct ContentView: View {
                 usesVimKeyBindings: settings.usesVimKeyBindings,
                 lineWrapping: settings.lineWrapping,
                 focusRequestID: model.focusRequestID,
-                onSubmit: model.submitPrompt,
+                onSubmit: model.isTemplateSelected ? model.saveTemplate : model.submitPrompt,
                 onCopyAll: model.copyPrompt
             )
         }
@@ -273,6 +311,21 @@ struct ContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(.bar)
+    }
+}
+
+struct TemplateRow: View {
+    let template: PromptTemplate
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(template.name)
+                .font(.subheadline)
+            Text(template.text)
+                .lineLimit(1)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
