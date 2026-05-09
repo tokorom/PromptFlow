@@ -59,9 +59,7 @@ struct ContentView: View {
             titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive) {
-                for template in templatesToDelete {
-                    model.deleteTemplate(template)
-                }
+                model.deleteTemplates(templatesToDelete)
                 templatesToDelete = []
             }
             .keyboardShortcut(.defaultAction)
@@ -219,6 +217,17 @@ struct ContentView: View {
             if !selectedHistory.isEmpty {
                 entriesToDelete = Set(selectedHistory)
                 showingDeleteConfirmation = true
+            }
+
+            let selectedTemplates = model.selection.compactMap { sel -> PromptTemplate? in
+                if case .template(let id) = sel {
+                    return model.templates.first(where: { $0.id == id })
+                }
+                return nil
+            }
+            if !selectedTemplates.isEmpty {
+                templatesToDelete = Set(selectedTemplates)
+                showingTemplateDeleteConfirmation = true
             }
         }
     }

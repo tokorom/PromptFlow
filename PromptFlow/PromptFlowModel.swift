@@ -198,43 +198,40 @@ final class PromptFlowModel: ObservableObject {
         templates.sort { $0.updatedAt > $1.updatedAt }
     }
 
-    func deleteTemplate(_ template: PromptTemplate) {
-        if let filename = template.filename {
-            let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
-            try? FileManager.default.removeItem(at: fileURL)
-        }
-        templates.removeAll { $0.id == template.id }
-        if case .template(let id) = selection.first, id == template.id {
-            selection = [.current]
-        }
-    }
-
     func revealTemplateInFinder(_ template: PromptTemplate) {
         guard let filename = template.filename else { return }
         let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
         NSWorkspace.shared.activateFileViewerSelecting([fileURL])
     }
 
-    func deleteTemplates(at offsets: IndexSet) {
-        for index in offsets {
-            let template = templates[index]
+    func deleteTemplates(_ templatesToDelete: Set<PromptTemplate>) {
+        let idsToDelete = Set(templatesToDelete.map { $0.id })
+        
+        for template in templatesToDelete {
             if let filename = template.filename {
                 let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
                 try? FileManager.default.removeItem(at: fileURL)
             }
         }
-        templates.remove(atOffsets: offsets)
         
-        // Clear selection if deleted
+        templates.removeAll { idsToDelete.contains($0.id) }
+        
+        // Update selection: remove deleted templates
         selection = selection.filter { sel in
             if case .template(let id) = sel {
-                return templates.contains(where: { $0.id == id })
+                return !idsToDelete.contains(id)
             }
             return true
         }
+        
         if selection.isEmpty {
             selection = [.current]
         }
+    }
+
+    func deleteTemplates(at offsets: IndexSet) {
+        let templatesToDelete = Set(offsets.map { templates[$0] })
+        deleteTemplates(templatesToDelete)
     }
 
     func setup(settings: AppSettings) {
