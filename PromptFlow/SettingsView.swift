@@ -47,11 +47,18 @@ struct SettingsView: View {
             Section("Template Storage") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(settings.templatesPath ?? "Default")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                        Button {
+                            let path = settings.templatesPath ?? model.defaultTemplatesDirectoryURL.path
+                            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+                        } label: {
+                            Text(settings.templatesPath ?? "Default (Application Support)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Reveal in Finder")
                         
                         Spacer()
                         
@@ -66,11 +73,10 @@ struct SettingsView: View {
                             }
                         }
                         
-                        if settings.templatesPath != nil {
-                            Button("Reset") {
-                                settings.templatesPath = nil
-                            }
+                        Button("Reset") {
+                            settings.templatesPath = nil
                         }
+                        .disabled(settings.templatesPath == nil)
                     }
                 }
             }

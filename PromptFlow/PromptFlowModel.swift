@@ -492,6 +492,10 @@ final class PromptFlowModel: ObservableObject {
             return url
         }
 
+        return defaultTemplatesDirectoryURL
+    }
+
+    var defaultTemplatesDirectoryURL: URL {
         let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
         let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
         let templatesDir = appSupport.appendingPathComponent("templates")
