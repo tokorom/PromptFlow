@@ -87,7 +87,7 @@ final class PromptFlowModel: ObservableObject {
     }
 
     var canSubmit: Bool {
-        previousApplication != nil && !promptText.isEmpty && isCurrentPromptSelected
+        previousApplication != nil && !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var statusText: String {
