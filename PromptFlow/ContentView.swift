@@ -13,6 +13,8 @@ struct ContentView: View {
 
     @State private var entriesToDelete: Set<PromptHistory> = []
     @State private var showingDeleteConfirmation = false
+    @State private var templatesToDelete: Set<PromptTemplate> = []
+    @State private var showingTemplateDeleteConfirmation = false
     @FocusState private var isListFocused: Bool
 
     var body: some View {
@@ -47,6 +49,28 @@ struct ContentView: View {
             if entriesToDelete.count == 1, let entry = entriesToDelete.first {
                 Text(entry.text)
                     .lineLimit(2)
+            }
+        }
+        .confirmationDialog(
+            templatesToDelete.count > 1
+                ? "Are you sure you want to delete \(templatesToDelete.count) templates?"
+                : "Are you sure you want to delete this template?",
+            isPresented: $showingTemplateDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                for template in templatesToDelete {
+                    model.deleteTemplate(template)
+                }
+                templatesToDelete = []
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {
+                templatesToDelete = []
+            }
+        } message: {
+            if templatesToDelete.count == 1, let template = templatesToDelete.first {
+                Text(template.name)
             }
         }
         .onChange(of: model.focusListRequestID) {
@@ -96,14 +120,16 @@ struct ContentView: View {
                             Divider()
 
                             Button(role: .destructive) {
-                                model.deleteTemplate(template)
+                                templatesToDelete = [template]
+                                showingTemplateDeleteConfirmation = true
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
                 }
                 .onDelete { offsets in
-                    model.deleteTemplates(at: offsets)
+                    templatesToDelete = Set(offsets.map { model.templates[$0] })
+                    showingTemplateDeleteConfirmation = true
                 }
             } header: {
                 HStack {
@@ -226,7 +252,8 @@ struct ContentView: View {
 
                         Button {
                             if let template = currentTemplate {
-                                model.deleteTemplate(template)
+                                templatesToDelete = [template]
+                                showingTemplateDeleteConfirmation = true
                             }
                         } label: {
                             Image(systemName: "trash")
@@ -239,14 +266,19 @@ struct ContentView: View {
                         Divider()
                             .frame(height: 16)
 
-                        Button("Apply") {
+                        Button {
                             model.applyTemplate()
+                        } label: {
+                            Label("Prompt", systemImage: "arrow.right.square")
                         }
+                        .keyboardShortcut("p", modifiers: .command)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.promptText.isEmpty || currentTemplate == nil)
 
-                        Button("Save") {
+                        Button {
                             model.saveTemplate()
+                        } label: {
+                            Label("Save", systemImage: "square.and.arrow.down")
                         }
                         .buttonStyle(.bordered)
                         .disabled(model.promptText.isEmpty)

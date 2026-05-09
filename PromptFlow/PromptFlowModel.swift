@@ -181,9 +181,6 @@ final class PromptFlowModel: ObservableObject {
     }
 
     func applyTemplate() {
-        currentPromptBuffer = promptText
-        selection = [.current]
-        
         // Update template's updatedAt to move it to top
         if case .template(let id) = selection.first {
             if let index = templates.firstIndex(where: { $0.id == id }) {
@@ -192,6 +189,9 @@ final class PromptFlowModel: ObservableObject {
                 sortTemplates()
             }
         }
+
+        currentPromptBuffer = promptText
+        selection = [.current]
     }
 
     private func sortTemplates() {
