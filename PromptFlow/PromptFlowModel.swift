@@ -254,10 +254,6 @@ final class PromptFlowModel: ObservableObject {
         }
 
         updateTargetHistory(application)
-
-        if previousApplication == nil {
-            setTarget(application)
-        }
     }
 
     func setTarget(_ application: NSRunningApplication) {
@@ -284,6 +280,7 @@ final class PromptFlowModel: ObservableObject {
             return
         }
 
+        let frontmost = NSWorkspace.shared.frontmostApplication
         if isHotkey {
             if !currentPromptBuffer.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
                 addToHistory(currentPromptBuffer)
@@ -292,9 +289,13 @@ final class PromptFlowModel: ObservableObject {
             
             selection = [.current]
             promptText = currentPromptBuffer
+
+            if let frontmost {
+                setTarget(frontmost)
+            }
         }
 
-        noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
+        noteActivatedApplication(frontmost)
         NSApp.activate(ignoringOtherApps: true)
         
         let mainWindows = NSApp.windows.filter { window in
