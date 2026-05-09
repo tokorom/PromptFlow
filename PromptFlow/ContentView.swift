@@ -87,6 +87,14 @@ struct ContentView: View {
                     TemplateRow(template: template)
                         .tag(SidebarSelection.template(template.id))
                         .contextMenu {
+                            Button {
+                                model.revealTemplateInFinder(template)
+                            } label: {
+                                Label("Show in Finder", systemImage: "folder")
+                            }
+
+                            Divider()
+
                             Button(role: .destructive) {
                                 model.deleteTemplate(template)
                             } label: {
@@ -198,11 +206,44 @@ struct ContentView: View {
                 Spacer()
                 if model.isTemplateSelected {
                     HStack(spacing: 12) {
+                        let currentTemplate = model.templates.first { template in
+                            if case .template(let id) = model.selection.first {
+                                return template.id == id
+                            }
+                            return false
+                        }
+
+                        Button {
+                            if let template = currentTemplate {
+                                model.revealTemplateInFinder(template)
+                            }
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(currentTemplate == nil)
+                        .help("Show in Finder")
+
+                        Button {
+                            if let template = currentTemplate {
+                                model.deleteTemplate(template)
+                            }
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                        .foregroundStyle(.red)
+                        .disabled(currentTemplate == nil)
+                        .help("Delete Template")
+
+                        Divider()
+                            .frame(height: 16)
+
                         Button("Apply") {
                             model.applyTemplate()
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(model.promptText.isEmpty)
+                        .disabled(model.promptText.isEmpty || currentTemplate == nil)
 
                         Button("Save") {
                             model.saveTemplate()

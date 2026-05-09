@@ -209,6 +209,12 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
+    func revealTemplateInFinder(_ template: PromptTemplate) {
+        guard let filename = template.filename else { return }
+        let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
+        NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+    }
+
     func deleteTemplates(at offsets: IndexSet) {
         for index in offsets {
             let template = templates[index]
