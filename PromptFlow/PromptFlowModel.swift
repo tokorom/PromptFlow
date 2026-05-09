@@ -195,6 +195,21 @@ final class PromptFlowModel: ObservableObject {
         selection = [.current]
     }
 
+    func applyTemplate(_ template: PromptTemplate) {
+        if let index = templates.firstIndex(where: { $0.id == template.id }) {
+            templates[index].updatedAt = Date()
+            saveTemplateFile(&templates[index])
+            currentPromptBuffer = templates[index].text
+            promptText = templates[index].text
+            sortTemplates()
+        } else {
+            currentPromptBuffer = template.text
+            promptText = template.text
+        }
+
+        selection = [.current]
+    }
+
     private func sortTemplates() {
         templates.sort { $0.updatedAt > $1.updatedAt }
     }

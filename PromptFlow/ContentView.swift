@@ -89,7 +89,7 @@ struct ContentView: View {
                 query: $templateSearchQuery,
                 selectedIndex: $templateSearchSelectedIndex,
                 onSelect: { template in
-                    model.selection = [.template(template.id)]
+                    model.applyTemplate(template)
                     showingTemplateSearch = false
                 },
                 onCancel: {
@@ -458,7 +458,6 @@ private struct TemplateSearchPanel: View {
                     TextField("Search templates", text: $query)
                         .textFieldStyle(.plain)
                         .focused($isSearchFocused)
-                        .onSubmit(selectCurrentCandidate)
                 }
                 .padding(10)
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
@@ -686,12 +685,15 @@ private struct TemplateSearchKeyMonitor: NSViewRepresentable {
         }
 
         private func handle(_ event: NSEvent) -> NSEvent? {
-            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
             let key = event.charactersIgnoringModifiers?.lowercased()
 
             if modifiers == [] {
                 switch event.keyCode {
                 case 36:
+                    guard !isComposingText() else {
+                        return event
+                    }
                     parent.onSelect()
                     return nil
                 case 53:
@@ -722,6 +724,22 @@ private struct TemplateSearchKeyMonitor: NSViewRepresentable {
             }
 
             return event
+        }
+
+        private func isComposingText() -> Bool {
+            guard let firstResponder = NSApp.keyWindow?.firstResponder else {
+                return false
+            }
+
+            if let textView = firstResponder as? NSTextView {
+                return textView.hasMarkedText()
+            }
+
+            if let textInputClient = firstResponder as? NSTextInputClient {
+                return textInputClient.hasMarkedText()
+            }
+
+            return false
         }
     }
 }
