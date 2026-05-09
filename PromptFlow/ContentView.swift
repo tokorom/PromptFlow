@@ -5,6 +5,7 @@
 //  Created by Yuta Tokoro on 2026/05/06.
 //
 
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -15,6 +16,9 @@ struct ContentView: View {
     @State private var showingDeleteConfirmation = false
     @State private var templatesToDelete: Set<PromptTemplate> = []
     @State private var showingTemplateDeleteConfirmation = false
+    @State private var showingTemplateSearch = false
+    @State private var templateSearchQuery = ""
+    @State private var templateSearchSelectedIndex = 0
     @FocusState private var isListFocused: Bool
 
     var body: some View {
@@ -74,6 +78,26 @@ struct ContentView: View {
         .onChange(of: model.focusListRequestID) {
             isListFocused = true
         }
+        .onChange(of: model.templateSearchRequestID) {
+            templateSearchQuery = ""
+            templateSearchSelectedIndex = 0
+            showingTemplateSearch = true
+        }
+        .sheet(isPresented: $showingTemplateSearch) {
+            TemplateSearchPanel(
+                templates: model.templates,
+                query: $templateSearchQuery,
+                selectedIndex: $templateSearchSelectedIndex,
+                onSelect: { template in
+                    model.selection = [.template(template.id)]
+                    showingTemplateSearch = false
+                },
+                onCancel: {
+                    showingTemplateSearch = false
+                }
+            )
+            .frame(width: 540, height: 420)
+        }
         .background {
             Button("") {
                 model.focusList()
@@ -86,7 +110,7 @@ struct ContentView: View {
             }
             .keyboardShortcut("e", modifiers: .command)
             .opacity(0)
-            
+
             if !settings.usesVimKeyBindings {
                 Button("") {
                     model.returnToTarget()
@@ -326,7 +350,8 @@ struct ContentView: View {
                 lineWrapping: settings.lineWrapping,
                 focusRequestID: model.focusRequestID,
                 onSubmit: model.isTemplateSelected ? model.saveTemplate : model.submitPrompt,
-                onCopyAll: model.copyPrompt
+                onCopyAll: model.copyPrompt,
+                onSearchTemplates: model.requestTemplateSearch
             )
         }
     }
@@ -408,6 +433,296 @@ struct ContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(.bar)
+    }
+}
+
+private struct TemplateSearchPanel: View {
+    let templates: [PromptTemplate]
+    @Binding var query: String
+    @Binding var selectedIndex: Int
+    let onSelect: (PromptTemplate) -> Void
+    let onCancel: () -> Void
+
+    @FocusState private var isSearchFocused: Bool
+
+    private var candidates: [TemplateSearchCandidate] {
+        TemplateSearchCandidate.search(query: query, in: templates)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search templates", text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($isSearchFocused)
+                        .onSubmit(selectCurrentCandidate)
+                }
+                .padding(10)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+
+                HStack {
+                    Text(candidateCountText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .padding(14)
+
+            Divider()
+
+            if candidates.isEmpty {
+                ContentUnavailableView("No Templates", systemImage: "doc.text.magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(candidates.enumerated()), id: \.element.id) { index, candidate in
+                                TemplateSearchRow(
+                                    candidate: candidate,
+                                    isSelected: index == selectedIndex
+                                )
+                                .id(candidate.id)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedIndex = index
+                                    onSelect(candidate.template)
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                    .onChange(of: selectedIndex) {
+                        guard candidates.indices.contains(selectedIndex) else { return }
+                        proxy.scrollTo(candidates[selectedIndex].id, anchor: .center)
+                    }
+                }
+            }
+        }
+        .background(.regularMaterial)
+        .onAppear {
+            selectedIndex = clampedSelectedIndex
+            isSearchFocused = true
+        }
+        .onChange(of: query) {
+            selectedIndex = 0
+        }
+        .onChange(of: templates) {
+            selectedIndex = clampedSelectedIndex
+        }
+        .background(
+            TemplateSearchKeyMonitor(
+                onMoveUp: moveUp,
+                onMoveDown: moveDown,
+                onSelect: selectCurrentCandidate,
+                onCancel: onCancel
+            )
+        )
+    }
+
+    private var clampedSelectedIndex: Int {
+        guard !candidates.isEmpty else { return 0 }
+        return min(max(selectedIndex, 0), candidates.count - 1)
+    }
+
+    private var candidateCountText: String {
+        candidates.count == 1 ? "1 template" : "\(candidates.count) templates"
+    }
+
+    private func moveUp() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : candidates.count - 1
+    }
+
+    private func moveDown() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex < candidates.count - 1 ? selectedIndex + 1 : 0
+    }
+
+    private func selectCurrentCandidate() {
+        guard candidates.indices.contains(selectedIndex) else { return }
+        onSelect(candidates[selectedIndex].template)
+    }
+}
+
+private struct TemplateSearchCandidate: Identifiable {
+    let template: PromptTemplate
+    let matchRank: Int
+
+    var id: UUID { template.id }
+
+    static func search(query: String, in templates: [PromptTemplate]) -> [TemplateSearchCandidate] {
+        let needle = normalized(query.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        return templates.compactMap { template in
+            let name = normalized(template.name)
+            let text = normalized(template.text)
+            let rank: Int?
+
+            if needle.isEmpty {
+                rank = 3
+            } else if name.hasPrefix(needle) {
+                rank = 0
+            } else if name.contains(needle) {
+                rank = 1
+            } else if text.contains(needle) {
+                rank = 2
+            } else {
+                rank = nil
+            }
+
+            return rank.map { TemplateSearchCandidate(template: template, matchRank: $0) }
+        }
+        .sorted { lhs, rhs in
+            if lhs.matchRank != rhs.matchRank {
+                return lhs.matchRank < rhs.matchRank
+            }
+            return lhs.template.updatedAt > rhs.template.updatedAt
+        }
+    }
+
+    private static func normalized(_ string: String) -> String {
+        string.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+    }
+}
+
+private struct TemplateSearchRow: View {
+    let candidate: TemplateSearchCandidate
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: iconName)
+                .foregroundStyle(isSelected ? .white : .secondary)
+                .frame(width: 18)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(candidate.template.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(candidate.template.updatedAt.formatted(date: .numeric, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                }
+
+                Text(candidate.template.text)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .foregroundStyle(isSelected ? .white : .primary)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.blue)
+            }
+        }
+    }
+
+    private var iconName: String {
+        switch candidate.matchRank {
+        case 0: "textformat.abc"
+        case 1: "text.magnifyingglass"
+        case 2: "doc.text.magnifyingglass"
+        default: "clock"
+        }
+    }
+}
+
+private struct TemplateSearchKeyMonitor: NSViewRepresentable {
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onSelect: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.installMonitor()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.removeMonitor()
+    }
+
+    final class Coordinator {
+        var parent: TemplateSearchKeyMonitor
+        private var monitor: Any?
+
+        init(_ parent: TemplateSearchKeyMonitor) {
+            self.parent = parent
+        }
+
+        func installMonitor() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let key = event.charactersIgnoringModifiers?.lowercased()
+
+            if modifiers == [] {
+                switch event.keyCode {
+                case 36:
+                    parent.onSelect()
+                    return nil
+                case 53:
+                    parent.onCancel()
+                    return nil
+                case 125:
+                    parent.onMoveDown()
+                    return nil
+                case 126:
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            if modifiers == .command {
+                switch key {
+                case "n":
+                    parent.onMoveDown()
+                    return nil
+                case "p":
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            return event
+        }
     }
 }
 

@@ -17,6 +17,7 @@ struct WebPromptEditor: NSViewRepresentable {
     let focusRequestID: Int
     let onSubmit: () -> Void
     let onCopyAll: () -> Void
+    let onSearchTemplates: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -120,6 +121,8 @@ extension WebPromptEditor {
                 parent.onSubmit()
             case "copyAll":
                 parent.onCopyAll()
+            case "searchTemplates":
+                parent.onSearchTemplates()
             case "editorLoadFailed":
                 let message = body["message"] as? String ?? "Unknown error"
                 print("PromptFlow editor fell back to textarea: \(message)")
@@ -281,6 +284,12 @@ private extension WebPromptEditor {
             if (event.metaKey && lowerKey === "c" && !hasSelection()) {
               event.preventDefault();
               post({ action: "copyAll" });
+              return;
+            }
+
+            if (event.metaKey && lowerKey === "t") {
+              event.preventDefault();
+              post({ action: "searchTemplates" });
               return;
             }
 

@@ -57,6 +57,13 @@ struct PromptCommands: Commands {
                 model.copyPrompt()
             }
             .disabled(!model.isEditorSelectionEmpty || model.promptText.isEmpty)
+
+            Divider()
+
+            Button("Search Templates") {
+                model.requestTemplateSearch()
+            }
+            .keyboardShortcut("t", modifiers: .command)
         }
     }
 }

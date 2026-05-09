@@ -34,6 +34,11 @@
 - テキストエディタはVimキーバインドでの入力に切り替え可能
   - テキストエディタ部分はWKWebView+CodeMirror6で実装
   - CodeMirror6のVim modeを使うため
+- Command+TでTemplate検索パレットを開ける
+  - 入力中のキーワードでTemplate候補をリアルタイムに絞り込む
+  - 候補はTemplate nameの前方一致、Template nameの部分一致、本文の部分一致、更新日時が新しい順で優先表示する
+  - Enterで選択中の候補を開く。候補がない場合はEnterでは何もしない
+  - 上下キーまたはCommand+P/Command+Nで候補選択を移動できる
 
 ## UI
 

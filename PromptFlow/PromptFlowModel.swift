@@ -67,6 +67,7 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var isSubmitting = false
     @Published private(set) var isCopying = false
     @Published var shouldOpenMainWindow = false
+    @Published private(set) var templateSearchRequestID = 0
 
     private var previousApplication: NSRunningApplication?
     private var settings: AppSettings?
@@ -138,7 +139,7 @@ final class PromptFlowModel: ObservableObject {
                         saveHistory()
                     }
                 }
-            } else if selection.count == 1, case .template(let id) = selection.first {
+            } else if selection.count == 1, case .template = selection.first {
                 // For templates, we don't auto-save to allow cancel/discard if needed?
                 // But the requirement says "Save button for updating", so we just keep it in promptText for now.
             }
@@ -336,6 +337,10 @@ final class PromptFlowModel: ObservableObject {
 
     func focusList() {
         focusListRequestID += 1
+    }
+
+    func requestTemplateSearch() {
+        templateSearchRequestID += 1
     }
 
     func copyPrompt() {
