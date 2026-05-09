@@ -94,6 +94,9 @@ struct ContentView: View {
                             }
                         }
                 }
+                .onDelete { offsets in
+                    model.deleteTemplates(at: offsets)
+                }
             } header: {
                 HStack {
                     Text("Templates")

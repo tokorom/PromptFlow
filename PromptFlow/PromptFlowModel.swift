@@ -28,12 +28,14 @@ struct PromptTemplate: Identifiable, Codable, Hashable {
     var name: String
     var text: String
     var updatedAt: Date
+    var filename: String?
 
-    init(id: UUID = UUID(), name: String, text: String, updatedAt: Date = Date()) {
+    init(id: UUID = UUID(), name: String, text: String, updatedAt: Date = Date(), filename: String? = nil) {
         self.id = id
         self.name = name
         self.text = text
         self.updatedAt = updatedAt
+        self.filename = filename
     }
 }
 
@@ -164,14 +166,14 @@ final class PromptFlowModel: ObservableObject {
                 templates[index].name = finalName
                 templates[index].text = promptText
                 templates[index].updatedAt = Date()
+                saveTemplateFile(&templates[index])
                 sortTemplates()
-                saveTemplates()
             }
         case .newTemplate:
-            let newTemplate = PromptTemplate(name: finalName, text: promptText)
+            var newTemplate = PromptTemplate(name: finalName, text: promptText)
+            saveTemplateFile(&newTemplate)
             templates.insert(newTemplate, at: 0)
             sortTemplates()
-            saveTemplates()
             selection = [.template(newTemplate.id)]
         default:
             break
@@ -186,8 +188,8 @@ final class PromptFlowModel: ObservableObject {
         if case .template(let id) = selection.first {
             if let index = templates.firstIndex(where: { $0.id == id }) {
                 templates[index].updatedAt = Date()
+                saveTemplateFile(&templates[index])
                 sortTemplates()
-                saveTemplates()
             }
         }
     }
@@ -197,9 +199,34 @@ final class PromptFlowModel: ObservableObject {
     }
 
     func deleteTemplate(_ template: PromptTemplate) {
+        if let filename = template.filename {
+            let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
+            try? FileManager.default.removeItem(at: fileURL)
+        }
         templates.removeAll { $0.id == template.id }
-        saveTemplates()
         if case .template(let id) = selection.first, id == template.id {
+            selection = [.current]
+        }
+    }
+
+    func deleteTemplates(at offsets: IndexSet) {
+        for index in offsets {
+            let template = templates[index]
+            if let filename = template.filename {
+                let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+        }
+        templates.remove(atOffsets: offsets)
+        
+        // Clear selection if deleted
+        selection = selection.filter { sel in
+            if case .template(let id) = sel {
+                return templates.contains(where: { $0.id == id })
+            }
+            return true
+        }
+        if selection.isEmpty {
             selection = [.current]
         }
     }
@@ -435,11 +462,12 @@ final class PromptFlowModel: ObservableObject {
         return appSupport.appendingPathComponent("history.json")
     }
 
-    private var templatesURL: URL {
+    private var templatesDirectoryURL: URL {
         let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
         let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
-        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
-        return appSupport.appendingPathComponent("templates.json")
+        let templatesDir = appSupport.appendingPathComponent("templates")
+        try? FileManager.default.createDirectory(at: templatesDir, withIntermediateDirectories: true)
+        return templatesDir
     }
 
     private func saveHistory() {
@@ -460,22 +488,46 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
-    private func saveTemplates() {
+    private func saveTemplateFile(_ template: inout PromptTemplate) {
+        let name = template.name
+        let sanitizedName = name.components(separatedBy: CharacterSet.alphanumerics.inverted).joined(separator: "_")
+        
+        let filename: String
+        if let existingFilename = template.filename {
+            filename = existingFilename
+        } else {
+            let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            filename = "\(sanitizedName)_\(timestamp).txt"
+            template.filename = filename
+        }
+
+        let fileURL = templatesDirectoryURL.appendingPathComponent(filename)
         do {
-            let data = try JSONEncoder().encode(templates)
-            try data.write(to: templatesURL)
+            let data = try JSONEncoder().encode(template)
+            try data.write(to: fileURL)
         } catch {
-            print("Failed to save templates: \(error)")
+            print("Failed to save template file: \(error)")
         }
     }
 
     private func loadTemplates() {
-        do {
-            let data = try Data(contentsOf: templatesURL)
-            templates = try JSONDecoder().decode([PromptTemplate].self, from: data)
-        } catch {
-            print("No templates found or failed to load: \(error)")
+        let dirURL = templatesDirectoryURL
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) else {
+            return
         }
+
+        var loadedTemplates: [PromptTemplate] = []
+        for fileURL in files where fileURL.pathExtension == "txt" {
+            do {
+                let data = try Data(contentsOf: fileURL)
+                var template = try JSONDecoder().decode(PromptTemplate.self, from: data)
+                template.filename = fileURL.lastPathComponent
+                loadedTemplates.append(template)
+            } catch {
+                print("Failed to load template file \(fileURL): \(error)")
+            }
+        }
+        templates = loadedTemplates.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     private static func postPasteShortcut() {
