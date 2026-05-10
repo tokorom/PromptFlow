@@ -892,7 +892,7 @@ private struct ReserveSearchKeyMonitor: NSViewRepresentable {
                 }
             }
 
-            if modifiers == .command {
+            if modifiers == .command || modifiers == .control {
                 switch key {
                 case "n":
                     parent.onMoveDown()
@@ -1200,7 +1200,7 @@ private struct TemplateSearchKeyMonitor: NSViewRepresentable {
                 }
             }
 
-            if modifiers == .command {
+            if modifiers == .command || modifiers == .control {
                 switch key {
                 case "n":
                     parent.onMoveDown()
