@@ -575,9 +575,9 @@ struct ContentView: View {
 
             Spacer()
 
-            if !model.targetHistory.isEmpty {
+            if !model.targetHistory.filter({ $0.localizedName != nil && $0.localizedName != "Unknown App" }).isEmpty {
                 Menu {
-                    ForEach(model.targetHistory, id: \.bundleIdentifier) { app in
+                    ForEach(model.targetHistory.filter({ $0.localizedName != nil && $0.localizedName != "Unknown App" }), id: \.bundleIdentifier) { app in
                         Button {
                             model.setTarget(app)
                         } label: {

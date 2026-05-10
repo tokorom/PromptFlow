@@ -392,6 +392,10 @@ final class PromptFlowModel: ObservableObject {
     }
 
     private func updateTargetHistory(_ application: NSRunningApplication) {
+        if application.localizedName == nil || application.localizedName == "Unknown App" {
+            return
+        }
+
         // Update history: remove if exists, insert at front, limit to 10
         if let index = targetHistory.firstIndex(where: { $0.bundleIdentifier == application.bundleIdentifier }) {
             targetHistory.remove(at: index)
@@ -404,8 +408,11 @@ final class PromptFlowModel: ObservableObject {
 
     func openFromShortcut(isHotkey: Bool = true) {
         if isHotkey && NSApp.isActive {
-            returnToTarget()
-            return
+            let hasVisibleWindows = NSApp.windows.contains { $0.isVisible }
+            if hasVisibleWindows {
+                returnToTarget()
+                return
+            }
         }
 
         let frontmost = NSWorkspace.shared.frontmostApplication
