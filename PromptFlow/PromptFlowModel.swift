@@ -408,8 +408,9 @@ final class PromptFlowModel: ObservableObject {
 
     func openFromShortcut(isHotkey: Bool = true) {
         if isHotkey && NSApp.isActive {
-            let hasVisibleWindows = NSApp.windows.contains { $0.isVisible }
-            if hasVisibleWindows {
+            let mainWindows = NSApp.windows.filter { $0.identifier?.rawValue.hasPrefix("main") == true }
+            let isMainWindowFrontmost = mainWindows.contains { $0.isKeyWindow }
+            if isMainWindowFrontmost {
                 returnToTarget()
                 return
             }
