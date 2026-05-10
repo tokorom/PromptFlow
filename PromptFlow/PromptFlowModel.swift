@@ -39,10 +39,27 @@ struct PromptTemplate: Identifiable, Codable, Hashable {
     }
 }
 
+struct PromptReserve: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var text: String
+    var updatedAt: Date
+    var filename: String?
+
+    init(id: UUID = UUID(), name: String, text: String, updatedAt: Date = Date(), filename: String? = nil) {
+        self.id = id
+        self.name = name
+        self.text = text
+        self.updatedAt = updatedAt
+        self.filename = filename
+    }
+}
+
 enum SidebarSelection: Hashable {
     case current
     case history(UUID)
     case template(UUID)
+    case reserve(UUID)
     case newTemplate
 }
 
@@ -64,10 +81,12 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var targetHistory: [NSRunningApplication] = []
     @Published private(set) var history: [PromptHistory] = []
     @Published private(set) var templates: [PromptTemplate] = []
+    @Published private(set) var reserves: [PromptReserve] = []
     @Published private(set) var isSubmitting = false
     @Published private(set) var isCopying = false
     @Published var shouldOpenMainWindow = false
     @Published private(set) var templateSearchRequestID = 0
+    @Published private(set) var reserveSearchRequestID = 0
 
     private var previousApplication: NSRunningApplication?
     private var settings: AppSettings?
@@ -81,6 +100,16 @@ final class PromptFlowModel: ObservableObject {
         if let first = selection.first {
             switch first {
             case .template, .newTemplate: return true
+            default: return false
+            }
+        }
+        return false
+    }
+
+    var isReserveSelected: Bool {
+        if let first = selection.first {
+            switch first {
+            case .reserve: return true
             default: return false
             }
         }
@@ -102,6 +131,7 @@ final class PromptFlowModel: ObservableObject {
     init() {
         loadHistory()
         loadTemplates()
+        loadReserves()
     }
 
     private func updatePromptTextFromSelection() {
@@ -119,6 +149,11 @@ final class PromptFlowModel: ObservableObject {
                 if let template = templates.first(where: { $0.id == id }) {
                     templateNameBuffer = template.name
                     promptText = template.text
+                }
+            case .reserve(let id):
+                if let reserve = reserves.first(where: { $0.id == id }) {
+                    templateNameBuffer = reserve.name
+                    promptText = reserve.text
                 }
             case .newTemplate:
                 templateNameBuffer = ""
@@ -142,6 +177,8 @@ final class PromptFlowModel: ObservableObject {
             } else if selection.count == 1, case .template = selection.first {
                 // For templates, we don't auto-save to allow cancel/discard if needed?
                 // But the requirement says "Save button for updating", so we just keep it in promptText for now.
+            } else if selection.count == 1, case .reserve = selection.first {
+                // Same as templates
             }
         }
     }
@@ -178,6 +215,17 @@ final class PromptFlowModel: ObservableObject {
             selection = [.template(newTemplate.id)]
         default:
             break
+        }
+    }
+
+    func saveReserve() {
+        guard selection.count == 1, case .reserve(let id) = selection.first else { return }
+
+        if let index = reserves.firstIndex(where: { $0.id == id }) {
+            reserves[index].text = promptText
+            reserves[index].updatedAt = Date()
+            saveReserveFile(&reserves[index])
+            sortReserves()
         }
     }
 
@@ -220,6 +268,12 @@ final class PromptFlowModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([fileURL])
     }
 
+    func revealReserveInFinder(_ reserve: PromptReserve) {
+        guard let filename = reserve.filename else { return }
+        let fileURL = reservesDirectoryURL.appendingPathComponent(filename)
+        NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+    }
+
     func deleteTemplates(_ templatesToDelete: Set<PromptTemplate>) {
         let idsToDelete = Set(templatesToDelete.map { $0.id })
         
@@ -245,9 +299,39 @@ final class PromptFlowModel: ObservableObject {
         }
     }
 
+    func deleteReserves(_ reservesToDelete: Set<PromptReserve>) {
+        let idsToDelete = Set(reservesToDelete.map { $0.id })
+        
+        for reserve in reservesToDelete {
+            if let filename = reserve.filename {
+                let fileURL = reservesDirectoryURL.appendingPathComponent(filename)
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+        }
+        
+        reserves.removeAll { idsToDelete.contains($0.id) }
+        
+        // Update selection: remove deleted reserves
+        selection = selection.filter { sel in
+            if case .reserve(let id) = sel {
+                return !idsToDelete.contains(id)
+            }
+            return true
+        }
+        
+        if selection.isEmpty {
+            selection = [.current]
+        }
+    }
+
     func deleteTemplates(at offsets: IndexSet) {
         let templatesToDelete = Set(offsets.map { templates[$0] })
         deleteTemplates(templatesToDelete)
+    }
+
+    func deleteReserves(at offsets: IndexSet) {
+        let reservesToDelete = Set(offsets.map { reserves[$0] })
+        deleteReserves(reservesToDelete)
     }
 
     func setup(settings: AppSettings) {
@@ -260,11 +344,12 @@ final class PromptFlowModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        settings.$templatesPath
+        settings.$storagePath
             .dropFirst()
             .sink { [weak self] _ in
                 Task { @MainActor in
                     self?.loadTemplates()
+                    self?.loadReserves()
                 }
             }
             .store(in: &cancellables)
@@ -356,6 +441,43 @@ final class PromptFlowModel: ObservableObject {
 
     func requestTemplateSearch() {
         templateSearchRequestID += 1
+    }
+
+    func requestReserveSearch() {
+        reserveSearchRequestID += 1
+    }
+
+    func reservePrompt() {
+        let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        let firstWord = text.components(separatedBy: .whitespacesAndNewlines).first ?? "Untitled"
+        var finalName = String(firstWord.prefix(10))
+        if finalName.isEmpty {
+            finalName = "Untitled"
+        }
+
+        var newReserve = PromptReserve(name: finalName, text: text)
+        saveReserveFile(&newReserve)
+        reserves.insert(newReserve, at: 0)
+        sortReserves()
+        selection = [.reserve(newReserve.id)]
+    }
+
+    func applyReserve(_ reserve: PromptReserve) {
+        if let index = reserves.firstIndex(where: { $0.id == reserve.id }) {
+            reserves[index].updatedAt = Date()
+            saveReserveFile(&reserves[index])
+            sortReserves()
+            
+            currentPromptBuffer = reserves[index].text
+            promptText = reserves[index].text
+            selection = [.current]
+        }
+    }
+
+    private func sortReserves() {
+        reserves.sort { $0.updatedAt > $1.updatedAt }
     }
 
     func copyPrompt() {
@@ -503,21 +625,33 @@ final class PromptFlowModel: ObservableObject {
     }
 
     private var templatesDirectoryURL: URL {
-        if let customPath = settings?.templatesPath, !customPath.isEmpty {
-            let url = URL(fileURLWithPath: customPath)
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-            return url
-        }
+        let url = storageDirectoryURL.appendingPathComponent("templates")
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
 
-        return defaultTemplatesDirectoryURL
+    private var reservesDirectoryURL: URL {
+        let url = storageDirectoryURL.appendingPathComponent("reserves")
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    private var storageDirectoryURL: URL {
+        if let customPath = settings?.storagePath, !customPath.isEmpty {
+            return URL(fileURLWithPath: customPath)
+        }
+        return defaultStorageDirectoryURL
+    }
+
+    var defaultStorageDirectoryURL: URL {
+        let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
+        try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
+        return appSupport
     }
 
     var defaultTemplatesDirectoryURL: URL {
-        let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
-        let templatesDir = appSupport.appendingPathComponent("templates")
-        try? FileManager.default.createDirectory(at: templatesDir, withIntermediateDirectories: true)
-        return templatesDir
+        templatesDirectoryURL
     }
 
     private func saveHistory() {
@@ -605,6 +739,74 @@ final class PromptFlowModel: ObservableObject {
             }
         }
         templates = loadedTemplates.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private func saveReserveFile(_ reserve: inout PromptReserve) {
+        let name = reserve.name
+        let sanitizedName = name.components(separatedBy: CharacterSet.alphanumerics.inverted).joined(separator: "_")
+        
+        let newFilename: String
+        if let existingFilename = reserve.filename {
+            let components = existingFilename.components(separatedBy: "_")
+            if components.count >= 2, components.dropLast().joined(separator: "_") == sanitizedName {
+                newFilename = existingFilename
+            } else {
+                let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+                newFilename = "\(sanitizedName)_\(timestamp).txt"
+                
+                let oldFileURL = reservesDirectoryURL.appendingPathComponent(existingFilename)
+                try? FileManager.default.removeItem(at: oldFileURL)
+                reserve.filename = newFilename
+            }
+        } else {
+            let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            newFilename = "\(sanitizedName)_\(timestamp).txt"
+            reserve.filename = newFilename
+        }
+
+        let fileURL = reservesDirectoryURL.appendingPathComponent(newFilename)
+        do {
+            try reserve.text.write(to: fileURL, atomically: true, encoding: .utf8)
+        } catch {
+            print("Failed to save reserve file: \(error)")
+        }
+    }
+
+    private func loadReserves() {
+        let dirURL = reservesDirectoryURL
+        guard let files = try? FileManager.default.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: [.contentModificationDateKey]) else {
+            return
+        }
+
+        var loadedReserves: [PromptReserve] = []
+        for fileURL in files where fileURL.pathExtension == "txt" {
+            do {
+                let text = try String(contentsOf: fileURL, encoding: .utf8)
+                let filename = fileURL.lastPathComponent
+                let nameWithoutExtension = fileURL.deletingPathExtension().lastPathComponent
+                let name: String
+                let components = nameWithoutExtension.components(separatedBy: "_")
+                if components.count >= 2 {
+                    name = components.dropLast().joined(separator: "_")
+                } else {
+                    name = nameWithoutExtension
+                }
+
+                let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+                let modificationDate = attributes[.modificationDate] as? Date ?? Date()
+
+                let reserve = PromptReserve(
+                    name: name,
+                    text: text,
+                    updatedAt: modificationDate,
+                    filename: filename
+                )
+                loadedReserves.append(reserve)
+            } catch {
+                print("Failed to load reserve file \(fileURL): \(error)")
+            }
+        }
+        reserves = loadedReserves.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     private static func postPasteShortcut() {

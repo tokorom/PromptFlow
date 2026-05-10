@@ -16,9 +16,14 @@ struct ContentView: View {
     @State private var showingDeleteConfirmation = false
     @State private var templatesToDelete: Set<PromptTemplate> = []
     @State private var showingTemplateDeleteConfirmation = false
+    @State private var reservesToDelete: Set<PromptReserve> = []
+    @State private var showingReserveDeleteConfirmation = false
     @State private var showingTemplateSearch = false
     @State private var templateSearchQuery = ""
     @State private var templateSearchSelectedIndex = 0
+    @State private var showingReserveSearch = false
+    @State private var reserveSearchQuery = ""
+    @State private var reserveSearchSelectedIndex = 0
     @FocusState private var isListFocused: Bool
 
     var body: some View {
@@ -70,6 +75,22 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) {
                 templatesToDelete = []
             }
+        }
+        .confirmationDialog(
+            reservesToDelete.count > 1
+                ? "Are you sure you want to delete \(reservesToDelete.count) reserves?"
+                : "Are you sure you want to delete this reserve?",
+            isPresented: $showingReserveDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                model.deleteReserves(reservesToDelete)
+                reservesToDelete = []
+            }
+            .keyboardShortcut(.defaultAction)
+            Button("Cancel", role: .cancel) {
+                reservesToDelete = []
+            }
         } message: {
             if templatesToDelete.count == 1, let template = templatesToDelete.first {
                 Text(template.name)
@@ -83,6 +104,11 @@ struct ContentView: View {
             templateSearchSelectedIndex = 0
             showingTemplateSearch = true
         }
+        .onChange(of: model.reserveSearchRequestID) {
+            reserveSearchQuery = ""
+            reserveSearchSelectedIndex = 0
+            showingReserveSearch = true
+        }
         .sheet(isPresented: $showingTemplateSearch) {
             TemplateSearchPanel(
                 templates: model.templates,
@@ -94,6 +120,21 @@ struct ContentView: View {
                 },
                 onCancel: {
                     showingTemplateSearch = false
+                }
+            )
+            .frame(width: 540, height: 420)
+        }
+        .sheet(isPresented: $showingReserveSearch) {
+            ReserveSearchPanel(
+                reserves: model.reserves,
+                query: $reserveSearchQuery,
+                selectedIndex: $reserveSearchSelectedIndex,
+                onSelect: { reserve in
+                    model.applyReserve(reserve)
+                    showingReserveSearch = false
+                },
+                onCancel: {
+                    showingReserveSearch = false
                 }
             )
             .frame(width: 540, height: 420)
@@ -178,6 +219,38 @@ struct ContentView: View {
             }
 
             Section {
+                ForEach(model.reserves) { reserve in
+                    Text(reserve.name)
+                        .tag(SidebarSelection.reserve(reserve.id))
+                        .contextMenu {
+                            Button {
+                                model.revealReserveInFinder(reserve)
+                            } label: {
+                                Label("Show in Finder", systemImage: "folder")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                reservesToDelete = [reserve]
+                                showingReserveDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                }
+                .onDelete { offsets in
+                    reservesToDelete = Set(offsets.map { model.reserves[$0] })
+                    showingReserveDeleteConfirmation = true
+                }
+            } header: {
+                HStack {
+                    Text("Reserves")
+                    Spacer()
+                }
+            }
+
+            Section {
                 ForEach(model.history) { entry in
                     HistoryRow(
                         entry: entry,
@@ -253,6 +326,17 @@ struct ContentView: View {
                 templatesToDelete = Set(selectedTemplates)
                 showingTemplateDeleteConfirmation = true
             }
+
+            let selectedReserves = model.selection.compactMap { sel -> PromptReserve? in
+                if case .reserve(let id) = sel {
+                    return model.reserves.first(where: { $0.id == id })
+                }
+                return nil
+            }
+            if !selectedReserves.isEmpty {
+                reservesToDelete = Set(selectedReserves)
+                showingReserveDeleteConfirmation = true
+            }
         }
     }
 
@@ -263,6 +347,11 @@ struct ContentView: View {
                     TextField("Template Name", text: $model.templateNameBuffer)
                         .textFieldStyle(.plain)
                         .font(.headline)
+                } else if model.isReserveSelected {
+                    TextField("Reserve Name", text: $model.templateNameBuffer)
+                        .textFieldStyle(.plain)
+                        .font(.headline)
+                        .disabled(true)
                 } else if let lastSelection = model.selection.first,
                    case .history(let id) = lastSelection,
                    let entry = model.history.first(where: { $0.id == id }) {
@@ -321,6 +410,64 @@ struct ContentView: View {
 
                         Button {
                             model.saveTemplate()
+                        } label: {
+                            Label("Save", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(model.promptText.isEmpty)
+                        .fixedSize()
+                    }
+                    .padding(.trailing, 8)
+                } else if model.isReserveSelected {
+                    HStack(spacing: 8) {
+                        let currentReserve = model.reserves.first { reserve in
+                            if case .reserve(let id) = model.selection.first {
+                                return reserve.id == id
+                            }
+                            return false
+                        }
+
+                        Button {
+                            if let currentReserve {
+                                model.revealReserveInFinder(currentReserve)
+                            }
+                        } label: {
+                            Image(systemName: "folder")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(currentReserve == nil)
+                        .help("Show in Finder")
+
+                        Button {
+                            if let currentReserve {
+                                reservesToDelete = [currentReserve]
+                                showingReserveDeleteConfirmation = true
+                            }
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.bordered)
+                        .foregroundStyle(.red)
+                        .disabled(currentReserve == nil)
+                        .help("Delete Reserve")
+
+                        Divider()
+                            .frame(height: 16)
+
+                        Button {
+                            if let currentReserve {
+                                model.applyReserve(currentReserve)
+                            }
+                        } label: {
+                            Label("Prompt", systemImage: "arrow.right.square")
+                        }
+                        .keyboardShortcut("p", modifiers: .command)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.promptText.isEmpty || currentReserve == nil)
+                        .fixedSize()
+
+                        Button {
+                            model.saveReserve()
                         } label: {
                             Label("Save", systemImage: "square.and.arrow.down")
                         }
@@ -391,6 +538,17 @@ struct ContentView: View {
             .disabled(!model.isEditorSelectionEmpty || model.isCopying || model.promptText.isEmpty)
             .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
 
+            Button {
+                model.reservePrompt()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "archivebox")
+                    Text("Reserve")
+                }
+            }
+            .disabled(model.promptText.isEmpty)
+            .help("Save the current prompt as a reserve")
+
             Spacer()
 
             if !model.targetHistory.isEmpty {
@@ -433,6 +591,314 @@ struct ContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
         .background(.bar)
+    }
+}
+
+private struct ReserveSearchPanel: View {
+    let reserves: [PromptReserve]
+    @Binding var query: String
+    @Binding var selectedIndex: Int
+    let onSelect: (PromptReserve) -> Void
+    let onCancel: () -> Void
+
+    @FocusState private var isSearchFocused: Bool
+
+    private var candidates: [ReserveSearchCandidate] {
+        ReserveSearchCandidate.search(query: query, in: reserves)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search reserves", text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($isSearchFocused)
+                }
+                .padding(10)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+
+                HStack {
+                    Text(candidateCountText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .padding(14)
+
+            Divider()
+
+            if candidates.isEmpty {
+                ContentUnavailableView("No Reserves", systemImage: "doc.text.magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(candidates.enumerated()), id: \.element.id) { index, candidate in
+                                ReserveSearchRow(
+                                    candidate: candidate,
+                                    isSelected: index == selectedIndex
+                                )
+                                .id(candidate.id)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    selectedIndex = index
+                                    onSelect(candidate.reserve)
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                    .onChange(of: selectedIndex) {
+                        guard candidates.indices.contains(selectedIndex) else { return }
+                        proxy.scrollTo(candidates[selectedIndex].id, anchor: .center)
+                    }
+                }
+            }
+        }
+        .background(.regularMaterial)
+        .onAppear {
+            selectedIndex = clampedSelectedIndex
+            isSearchFocused = true
+        }
+        .onChange(of: query) {
+            selectedIndex = 0
+        }
+        .onChange(of: reserves) {
+            selectedIndex = clampedSelectedIndex
+        }
+        .background(
+            ReserveSearchKeyMonitor(
+                onMoveUp: moveUp,
+                onMoveDown: moveDown,
+                onSelect: selectCurrentCandidate,
+                onCancel: onCancel
+            )
+        )
+    }
+
+    private var clampedSelectedIndex: Int {
+        guard !candidates.isEmpty else { return 0 }
+        return min(max(selectedIndex, 0), candidates.count - 1)
+    }
+
+    private var candidateCountText: String {
+        candidates.count == 1 ? "1 reserve" : "\(candidates.count) reserves"
+    }
+
+    private func moveUp() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : candidates.count - 1
+    }
+
+    private func moveDown() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex < candidates.count - 1 ? selectedIndex + 1 : 0
+    }
+
+    private func selectCurrentCandidate() {
+        guard candidates.indices.contains(selectedIndex) else { return }
+        onSelect(candidates[selectedIndex].reserve)
+    }
+}
+
+private struct ReserveSearchCandidate: Identifiable {
+    let reserve: PromptReserve
+    let matchRank: Int
+
+    var id: UUID { reserve.id }
+
+    static func search(query: String, in reserves: [PromptReserve]) -> [ReserveSearchCandidate] {
+        let needle = normalized(query.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        return reserves.compactMap { reserve in
+            let name = normalized(reserve.name)
+            let text = normalized(reserve.text)
+            let rank: Int?
+
+            if needle.isEmpty {
+                rank = 3
+            } else if name.hasPrefix(needle) {
+                rank = 0
+            } else if name.contains(needle) {
+                rank = 1
+            } else if text.contains(needle) {
+                rank = 2
+            } else {
+                rank = nil
+            }
+
+            return rank.map { ReserveSearchCandidate(reserve: reserve, matchRank: $0) }
+        }
+        .sorted { lhs, rhs in
+            if lhs.matchRank != rhs.matchRank {
+                return lhs.matchRank < rhs.matchRank
+            }
+            return lhs.reserve.updatedAt > rhs.reserve.updatedAt
+        }
+    }
+
+    private static func normalized(_ string: String) -> String {
+        string.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+    }
+}
+
+private struct ReserveSearchRow: View {
+    let candidate: ReserveSearchCandidate
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: iconName)
+                .foregroundStyle(isSelected ? .white : .secondary)
+                .frame(width: 18)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(candidate.reserve.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(candidate.reserve.updatedAt.formatted(date: .numeric, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                }
+
+                Text(candidate.reserve.text)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .foregroundStyle(isSelected ? .white : .primary)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.blue)
+            }
+        }
+    }
+
+    private var iconName: String {
+        switch candidate.matchRank {
+        case 0: "textformat.abc"
+        case 1: "text.magnifyingglass"
+        case 2: "doc.text.magnifyingglass"
+        default: "clock"
+        }
+    }
+}
+
+private struct ReserveSearchKeyMonitor: NSViewRepresentable {
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onSelect: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.installMonitor()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.removeMonitor()
+    }
+
+    final class Coordinator {
+        var parent: ReserveSearchKeyMonitor
+        private var monitor: Any?
+
+        init(_ parent: ReserveSearchKeyMonitor) {
+            self.parent = parent
+        }
+
+        func installMonitor() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            let key = event.charactersIgnoringModifiers?.lowercased()
+
+            if modifiers == [] {
+                switch event.keyCode {
+                case 36:
+                    guard !isComposingText() else {
+                        return event
+                    }
+                    parent.onSelect()
+                    return nil
+                case 53:
+                    parent.onCancel()
+                    return nil
+                case 125:
+                    parent.onMoveDown()
+                    return nil
+                case 126:
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            if modifiers == .command {
+                switch key {
+                case "n":
+                    parent.onMoveDown()
+                    return nil
+                case "p":
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            return event
+        }
+
+        private func isComposingText() -> Bool {
+            guard let firstResponder = NSApp.keyWindow?.firstResponder else {
+                return false
+            }
+
+            if let textView = firstResponder as? NSTextView {
+                return textView.hasMarkedText()
+            }
+
+            if let textInputClient = firstResponder as? NSTextInputClient {
+                return textInputClient.hasMarkedText()
+            }
+
+            return false
+        }
     }
 }
 

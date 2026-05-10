@@ -64,6 +64,11 @@ struct PromptCommands: Commands {
                 model.requestTemplateSearch()
             }
             .keyboardShortcut("t", modifiers: .command)
+
+            Button("Search Reserves") {
+                model.requestReserveSearch()
+            }
+            .keyboardShortcut("r", modifiers: .command)
         }
     }
 }

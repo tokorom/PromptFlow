@@ -44,14 +44,14 @@ struct SettingsView: View {
                 Toggle("Send Enter after Submit", isOn: $settings.sendEnterAfterSubmit)
             }
 
-            Section("Template Storage") {
+            Section("Storage") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Button {
-                            let path = settings.templatesPath ?? model.defaultTemplatesDirectoryURL.path
+                            let path = settings.storagePath ?? model.defaultStorageDirectoryURL.path
                             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
                         } label: {
-                            Text(settings.templatesPath ?? "Default (Application Support)")
+                            Text(settings.storagePath ?? "Default (Application Support)")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -59,9 +59,9 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .help("Reveal in Finder")
-                        
+
                         Spacer()
-                        
+
                         Button("Change...") {
                             let panel = NSOpenPanel()
                             panel.canChooseFiles = false
@@ -69,18 +69,17 @@ struct SettingsView: View {
                             panel.allowsMultipleSelection = false
                             panel.canCreateDirectories = true
                             if panel.runModal() == .OK {
-                                settings.templatesPath = panel.url?.path
+                                settings.storagePath = panel.url?.path
                             }
                         }
-                        
+
                         Button("Reset") {
-                            settings.templatesPath = nil
+                            settings.storagePath = nil
                         }
-                        .disabled(settings.templatesPath == nil)
+                        .disabled(settings.storagePath == nil)
                     }
                 }
             }
-
             Section("History") {
                 Stepper("History Limit: \(settings.historyLimit)", value: $settings.historyLimit, in: 10...1000, step: 10)
 
