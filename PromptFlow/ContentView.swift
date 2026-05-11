@@ -25,6 +25,9 @@ struct ContentView: View {
     @State private var reserveSearchQuery = ""
     @State private var reserveSearchSelectedIndex = 0
     @FocusState private var isListFocused: Bool
+    @State private var showingGlobalSearch = false
+    @State private var globalSearchQuery = ""
+    @State private var globalSearchSelectedIndex = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,6 +102,11 @@ struct ContentView: View {
         .onChange(of: model.focusListRequestID) {
             isListFocused = true
         }
+        .onChange(of: model.globalSearchRequestID) {
+            globalSearchQuery = ""
+            globalSearchSelectedIndex = 0
+            showingGlobalSearch = true
+        }
         .onChange(of: model.templateSearchRequestID) {
             templateSearchQuery = ""
             templateSearchSelectedIndex = 0
@@ -108,6 +116,30 @@ struct ContentView: View {
             reserveSearchQuery = ""
             reserveSearchSelectedIndex = 0
             showingReserveSearch = true
+        }
+        .sheet(isPresented: $showingGlobalSearch) {
+            GlobalSearchPanel(
+                templates: model.templates,
+                reserves: model.reserves,
+                history: model.history,
+                query: $globalSearchQuery,
+                selectedIndex: $globalSearchSelectedIndex,
+                onSelect: { result in
+                    switch result {
+                    case .template(let template):
+                        model.applyTemplate(template)
+                    case .reserve(let reserve):
+                        model.applyReserve(reserve)
+                    case .history(let entry):
+                        model.selection = [.history(entry.id)]
+                    }
+                    showingGlobalSearch = false
+                },
+                onCancel: {
+                    showingGlobalSearch = false
+                }
+            )
+            .frame(width: 540, height: 420)
         }
         .sheet(isPresented: $showingTemplateSearch) {
             TemplateSearchPanel(
@@ -140,6 +172,12 @@ struct ContentView: View {
             .frame(width: 540, height: 420)
         }
         .background {
+            Button("") {
+                model.requestGlobalSearch()
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+
             Button("") {
                 model.focusList()
             }
@@ -1291,6 +1329,400 @@ struct HistoryRow: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+}
+
+// MARK: - Global Search
+
+private enum GlobalSearchResult: Identifiable {
+    case template(PromptTemplate)
+    case reserve(PromptReserve)
+    case history(PromptHistory)
+
+    var id: UUID {
+        switch self {
+        case .template(let t): t.id
+        case .reserve(let r): r.id
+        case .history(let h): h.id
+        }
+    }
+
+    var name: String {
+        switch self {
+        case .template(let t): t.name
+        case .reserve(let r): r.name
+        case .history(let h): h.date.formatted(date: .numeric, time: .shortened)
+        }
+    }
+
+    var text: String {
+        switch self {
+        case .template(let t): t.text
+        case .reserve(let r): r.text
+        case .history(let h): h.text
+        }
+    }
+
+    var date: Date {
+        switch self {
+        case .template(let t): t.updatedAt
+        case .reserve(let r): r.updatedAt
+        case .history(let h): h.date
+        }
+    }
+
+    var sectionTitle: String {
+        switch self {
+        case .template: "Templates"
+        case .reserve: "Reserves"
+        case .history: "History"
+        }
+    }
+}
+
+private struct GlobalSearchPanel: View {
+    let templates: [PromptTemplate]
+    let reserves: [PromptReserve]
+    let history: [PromptHistory]
+    @Binding var query: String
+    @Binding var selectedIndex: Int
+    let onSelect: (GlobalSearchResult) -> Void
+    let onCancel: () -> Void
+
+    @FocusState private var isSearchFocused: Bool
+
+    private var candidates: [GlobalSearchCandidate] {
+        GlobalSearchCandidate.search(query: query, templates: templates, reserves: reserves, history: history)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("Search templates, reserves, and history", text: $query)
+                        .textFieldStyle(.plain)
+                        .focused($isSearchFocused)
+                }
+                .padding(10)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+
+                HStack {
+                    Text(candidateCountText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .padding(14)
+
+            Divider()
+
+            if candidates.isEmpty {
+                ContentUnavailableView("No Results", systemImage: "doc.text.magnifyingglass")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                            let sections = Dictionary(grouping: candidates.enumerated()) { $0.element.result.sectionTitle }
+                            let sortedSectionTitles = ["Templates", "Reserves", "History"].filter { sections.keys.contains($0) }
+
+                            ForEach(sortedSectionTitles, id: \.self) { sectionTitle in
+                                Section(header: sectionHeader(sectionTitle)) {
+                                    ForEach(sections[sectionTitle]!, id: \.element.id) { index, candidate in
+                                        GlobalSearchRow(
+                                            candidate: candidate,
+                                            isSelected: index == selectedIndex
+                                        )
+                                        .id(candidate.id)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedIndex = index
+                                            onSelect(candidate.result)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
+                    .onChange(of: selectedIndex) {
+                        guard candidates.indices.contains(selectedIndex) else { return }
+                        proxy.scrollTo(candidates[selectedIndex].id, anchor: .center)
+                    }
+                }
+            }
+        }
+        .background(.regularMaterial)
+        .onAppear {
+            selectedIndex = clampedSelectedIndex
+            isSearchFocused = true
+        }
+        .onChange(of: query) {
+            selectedIndex = 0
+        }
+        .background(
+            GlobalSearchKeyMonitor(
+                onMoveUp: moveUp,
+                onMoveDown: moveDown,
+                onSelect: selectCurrentCandidate,
+                onCancel: onCancel
+            )
+        )
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+            Spacer()
+        }
+        .background(.regularMaterial)
+    }
+
+    private var clampedSelectedIndex: Int {
+        guard !candidates.isEmpty else { return 0 }
+        return min(max(selectedIndex, 0), candidates.count - 1)
+    }
+
+    private var candidateCountText: String {
+        candidates.count == 1 ? "1 result" : "\(candidates.count) results"
+    }
+
+    private func moveUp() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex > 0 ? selectedIndex - 1 : candidates.count - 1
+    }
+
+    private func moveDown() {
+        guard !candidates.isEmpty else { return }
+        selectedIndex = selectedIndex < candidates.count - 1 ? selectedIndex + 1 : 0
+    }
+
+    private func selectCurrentCandidate() {
+        guard candidates.indices.contains(selectedIndex) else { return }
+        onSelect(candidates[selectedIndex].result)
+    }
+}
+
+private struct GlobalSearchCandidate: Identifiable {
+    let result: GlobalSearchResult
+    let matchRank: Int
+
+    var id: UUID { result.id }
+
+    static func search(query: String, templates: [PromptTemplate], reserves: [PromptReserve], history: [PromptHistory]) -> [GlobalSearchCandidate] {
+        let needle = normalized(query.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        var allCandidates: [GlobalSearchCandidate] = []
+
+        allCandidates.append(contentsOf: templates.compactMap { template in
+            rank(needle: needle, name: template.name, text: template.text).map { GlobalSearchCandidate(result: .template(template), matchRank: $0) }
+        })
+
+        allCandidates.append(contentsOf: reserves.compactMap { reserve in
+            rank(needle: needle, name: reserve.name, text: reserve.text).map { GlobalSearchCandidate(result: .reserve(reserve), matchRank: $0) }
+        })
+
+        allCandidates.append(contentsOf: history.compactMap { entry in
+            rank(needle: needle, name: "", text: entry.text).map { GlobalSearchCandidate(result: .history(entry), matchRank: $0) }
+        })
+
+        return allCandidates.sorted { lhs, rhs in
+            let sectionOrder = ["Templates": 0, "Reserves": 1, "History": 2]
+            let lhsSection = sectionOrder[lhs.result.sectionTitle] ?? 99
+            let rhsSection = sectionOrder[rhs.result.sectionTitle] ?? 99
+
+            if lhsSection != rhsSection {
+                return lhsSection < rhsSection
+            }
+
+            if lhs.matchRank != rhs.matchRank {
+                return lhs.matchRank < rhs.matchRank
+            }
+            return lhs.result.date > rhs.result.date
+        }
+    }
+
+    private static func rank(needle: String, name: String, text: String) -> Int? {
+        let nName = normalized(name)
+        let nText = normalized(text)
+
+        if needle.isEmpty {
+            return 3
+        } else if !name.isEmpty && nName.hasPrefix(needle) {
+            return 0
+        } else if !name.isEmpty && nName.contains(needle) {
+            return 1
+        } else if nText.contains(needle) {
+            return 2
+        } else {
+            return nil
+        }
+    }
+
+    private static func normalized(_ string: String) -> String {
+        string.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+    }
+}
+
+private struct GlobalSearchRow: View {
+    let candidate: GlobalSearchCandidate
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: iconName)
+                .foregroundStyle(isSelected ? .white : .secondary)
+                .frame(width: 18)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(candidate.result.name)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(candidate.result.date.formatted(date: .numeric, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
+                }
+
+                Text(candidate.result.text)
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? .white.opacity(0.85) : .secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .foregroundStyle(isSelected ? .white : .primary)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(.blue)
+            }
+        }
+    }
+
+    private var iconName: String {
+        switch candidate.matchRank {
+        case 0: "textformat.abc"
+        case 1: "text.magnifyingglass"
+        case 2: "doc.text.magnifyingglass"
+        default: "clock"
+        }
+    }
+}
+
+private struct GlobalSearchKeyMonitor: NSViewRepresentable {
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
+    let onSelect: () -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.installMonitor()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.removeMonitor()
+    }
+
+    final class Coordinator {
+        var parent: GlobalSearchKeyMonitor
+        private var monitor: Any?
+
+        init(_ parent: GlobalSearchKeyMonitor) {
+            self.parent = parent
+        }
+
+        func installMonitor() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            let key = event.charactersIgnoringModifiers?.lowercased()
+
+            if modifiers == [] {
+                switch event.keyCode {
+                case 36:
+                    guard !isComposingText() else {
+                        return event
+                    }
+                    parent.onSelect()
+                    return nil
+                case 53:
+                    parent.onCancel()
+                    return nil
+                case 125:
+                    parent.onMoveDown()
+                    return nil
+                case 126:
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            if modifiers == .command || modifiers == .control {
+                switch key {
+                case "n":
+                    parent.onMoveDown()
+                    return nil
+                case "p":
+                    parent.onMoveUp()
+                    return nil
+                default:
+                    break
+                }
+            }
+
+            return event
+        }
+
+        private func isComposingText() -> Bool {
+            guard let firstResponder = NSApp.keyWindow?.firstResponder else {
+                return false
+            }
+
+            if let textView = firstResponder as? NSTextView {
+                return textView.hasMarkedText()
+            }
+
+            if let textInputClient = firstResponder as? NSTextInputClient {
+                return textInputClient.hasMarkedText()
+            }
+
+            return false
         }
     }
 }

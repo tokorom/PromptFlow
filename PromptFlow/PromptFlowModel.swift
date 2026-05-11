@@ -115,6 +115,7 @@ final class PromptFlowModel: ObservableObject {
     @Published private(set) var isSubmitting = false
     @Published private(set) var isCopying = false
     @Published var shouldOpenMainWindow = false
+    @Published private(set) var globalSearchRequestID = 0
     @Published private(set) var templateSearchRequestID = 0
     @Published private(set) var reserveSearchRequestID = 0
 
@@ -549,6 +550,10 @@ final class PromptFlowModel: ObservableObject {
 
     func focusList() {
         focusListRequestID += 1
+    }
+
+    func requestGlobalSearch() {
+        globalSearchRequestID += 1
     }
 
     func requestTemplateSearch() {
