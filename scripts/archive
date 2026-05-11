@@ -3,12 +3,13 @@
 set -euo pipefail
 
 # Configuration
+APP_NAME="PromptFlow"
 XCCONFIG="Version.xcconfig"
-PROJECT="PromptFlow.xcodeproj"
-SCHEME="PromptFlow"
+PROJECT="$APP_NAME.xcodeproj"
+SCHEME="$APP_NAME"
 BUILD_DIR=".build"
-ARCHIVE_PATH="$BUILD_DIR/PromptFlow.xcarchive"
-APP_PATH="$ARCHIVE_PATH/Products/Applications/PromptFlow.app"
+ARCHIVE_PATH="$BUILD_DIR/$APP_NAME.xcarchive"
+APP_PATH="$ARCHIVE_PATH/Products/Applications/$APP_NAME.app"
 
 # Signing / Notarization
 DEVELOPER_ID="Developer ID Application: SPINNERS, LIMITED LIABILITY CO. (5AXCX2DUCQ)"
@@ -45,7 +46,7 @@ if [[ -z "$VERSION" ]]; then
     exit 1
 fi
 
-DMG_NAME="PromptFlow-${VERSION}.dmg"
+DMG_NAME="$APP_NAME-${VERSION}.dmg"
 DMG_PATH="$BUILD_DIR/$DMG_NAME"
 
 # 2. Cleanup
@@ -54,52 +55,76 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # 3. Build & Archive
-echo "Archiving PromptFlow version $VERSION..."
+echo "Archiving $APP_NAME version $VERSION..."
 xcodebuild archive \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
     -configuration Release \
-    -archivePath "$ARCHIVE_PATH" \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID" \
-    OTHER_CODE_SIGN_FLAGS="--options runtime"
+    -archivePath "$ARCHIVE_PATH"
 
-# 4. Verify app signing
+# 4. Re-sign app for Developer ID distribution
+echo "Re-signing app with Developer ID..."
+codesign --force --deep --options runtime \
+    --sign "$DEVELOPER_ID" \
+    "$APP_PATH"
+
+# 5. Verify app signing
 echo "Verifying app signature..."
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign -dv --verbose=4 "$APP_PATH"
 
-# 5. Create DMG
+# 6. Create DMG
+echo "Clean $DMG_NAME..."
+hdiutil detach "/Volumes/$APP_NAME" 2>/dev/null || true
+rm -f "$DMG_PATH"
+echo "APP_PATH=$APP_PATH"
+codesign -dv --verbose=4 "$APP_PATH" 2>&1 | grep Authority
+
 echo "Creating $DMG_NAME..."
 /opt/homebrew/bin/create-dmg \
-    --volname "PromptFlow" \
+    --volname "$APP_NAME" \
     --window-pos 200 120 \
     --window-size 600 400 \
     --icon-size 100 \
-    --icon "PromptFlow.app" 150 190 \
-    --hide-extension "PromptFlow.app" \
+    --icon "$APP_NAME.app" 150 190 \
+    --hide-extension "$APP_NAME.app" \
     --app-drop-link 450 190 \
     "$DMG_PATH" \
     "$APP_PATH"
 
-# 6. Sign DMG with Developer ID
+MOUNT_DIR=$(mktemp -d)
+
+hdiutil attach "$DMG_PATH" \
+  -mountpoint "$MOUNT_DIR" \
+  -nobrowse \
+  -quiet
+
+echo "Verifying app inside DMG..."
+codesign -dv --verbose=4 "$MOUNT_DIR/$APP_NAME.app" 2>&1 | grep Authority
+spctl -a -vvv "$MOUNT_DIR/$APP_NAME.app"
+
+hdiutil detach "$MOUNT_DIR" -quiet
+rmdir "$MOUNT_DIR"
+
+# 7. Sign DMG with Developer ID
 echo "Signing DMG..."
 codesign --force --sign "$DEVELOPER_ID" "$DMG_PATH"
 
-# 7. Verify DMG signature
+# 8. Verify DMG signature
 echo "Verifying DMG signature..."
 codesign -dv --verbose=4 "$DMG_PATH"
 
-# 8. Notarize DMG
+# 9. Notarize DMG
 echo "Submitting DMG for notarization..."
 xcrun notarytool submit "$DMG_PATH" \
     --keychain-profile "$NOTARY_PROFILE" \
     --wait
 
-# 9. Staple notarization ticket
+# 10. Staple notarization ticket
 echo "Stapling notarization ticket..."
 xcrun stapler staple "$DMG_PATH"
 
-# 10. Final verification
+# 11. Final verification
 echo "Final verification..."
 xcrun stapler validate "$DMG_PATH"
 spctl -a -vvv -t open --context context:primary-signature "$DMG_PATH"
