@@ -68,6 +68,15 @@ codesign --force --deep --options runtime \
     --sign "$DEVELOPER_ID" \
     "$APP_PATH" >&2
 
+ditto -c -k --keepParent "$APP_PATH" "$BUILD_DIR/PromptFlow.app.zip" >&2
+
+xcrun notarytool submit "$BUILD_DIR/PromptFlow.app.zip" \
+  --keychain-profile "$NOTARY_PROFILE" \
+  --wait >&2
+
+xcrun stapler staple "$APP_PATH" >&2
+xcrun stapler validate "$APP_PATH" >&2
+
 # 5. Verify app signing
 echo "Verifying app signature..." >&2
 codesign --verify --deep --strict --verbose=2 "$APP_PATH" >&2
