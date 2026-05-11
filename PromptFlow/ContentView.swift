@@ -152,6 +152,13 @@ struct ContentView: View {
             .keyboardShortcut("e", modifiers: .command)
             .opacity(0)
 
+            Button("") {
+                model.selectPreviousHistory()
+            }
+            .keyboardShortcut("p", modifiers: .command)
+            .disabled(model.isTemplateSelected || model.isReserveSelected)
+            .opacity(0)
+
             if !settings.usesVimKeyBindings {
                 Button("") {
                     model.returnToTarget()

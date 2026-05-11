@@ -288,6 +288,23 @@ final class PromptFlowModel: ObservableObject {
         return String(trimmed.prefix(20))
     }
 
+    func selectPreviousHistory() {
+        guard !history.isEmpty else { return }
+
+        if let lastSelection = selection.first, case .history(let id) = lastSelection {
+            if let currentIndex = history.firstIndex(where: { $0.id == id }) {
+                let nextIndex = currentIndex + 1
+                if nextIndex < history.count {
+                    selection = [.history(history[nextIndex].id)]
+                }
+            }
+        } else {
+            selection = [.history(history[0].id)]
+        }
+
+        focusEditor()
+    }
+
     func applyTemplate() {
         // Update template's updatedAt to move it to top
         if case .template(let id) = selection.first {
