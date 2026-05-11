@@ -41,10 +41,10 @@
   - Enterで選択中の候補をPromptとしてCurrent Promptに適用する。候補がない場合はEnterでは何もしない
   - 日本語などの文字入力の変換確定中のEnterは候補選択として扱わない
   - 入力欄にフォーカスがある状態でも上下キーまたはCommand+P/Command+Nで候補選択を移動できる
-- Command+Pで最新の履歴を選択しエディタにフォーカスする。すでに履歴が選択されている場合は1つ前の（より古い）履歴に移動する
-- Command+Nで1つ後（より新しい）の履歴に移動する。履歴が選択されていない場合は一番古い履歴を表示する。最後に「Current Prompt」に戻る
+- Command+Pで左ペインのListの1つ前の項目を選択・表示する
+- Command+Nで左ペインのListの次の項目を選択・表示する。一番下の項目なら「Current Prompt」に戻る
   - 標準の「新規ウィンドウ (Command+N)」は無効化する
-  - ただしTemplateやReserveが選択されている場合は、それらをPromptとして適用する（既存の挙動）
+  - ただしTemplateやReserveが選択されている場合は、それらをPromptとして適用する（Command+Pのみ既存の挙動を維持）
 
 ## UI
 

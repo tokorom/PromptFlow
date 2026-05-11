@@ -153,13 +153,13 @@ struct ContentView: View {
             .opacity(0)
 
             Button("") {
-                model.selectNextHistory()
+                model.selectNextSidebarItem()
             }
             .keyboardShortcut("n", modifiers: .command)
             .opacity(0)
 
             Button("") {
-                model.selectPreviousHistory()
+                model.selectPreviousSidebarItem()
             }
             .keyboardShortcut("p", modifiers: .command)
             .disabled(model.isTemplateSelected || model.isReserveSelected)

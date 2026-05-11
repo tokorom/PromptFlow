@@ -288,40 +288,31 @@ final class PromptFlowModel: ObservableObject {
         return String(trimmed.prefix(20))
     }
 
-    func selectNextHistory() {
-        guard !history.isEmpty else { return }
+    private var allSidebarItems: [SidebarSelection] {
+        var items: [SidebarSelection] = [.current]
+        items.append(contentsOf: templates.map { .template($0.id) })
+        items.append(contentsOf: reserves.map { .reserve($0.id) })
+        items.append(contentsOf: history.map { .history($0.id) })
+        return items
+    }
 
-        if let lastSelection = selection.first, case .history(let id) = lastSelection {
-            if let currentIndex = history.firstIndex(where: { $0.id == id }) {
-                let prevIndex = currentIndex - 1
-                if prevIndex >= 0 {
-                    selection = [.history(history[prevIndex].id)]
-                } else {
-                    selection = [.current]
-                }
-            }
-        } else {
-            // Select the oldest history item
-            selection = [.history(history.last!.id)]
-        }
+    func selectNextSidebarItem() {
+        let items = allSidebarItems
+        guard !items.isEmpty else { return }
 
+        let currentIndex = items.firstIndex { selection.contains($0) } ?? -1
+        let nextIndex = (currentIndex + 1) % items.count
+        selection = [items[nextIndex]]
         focusEditor()
     }
 
-    func selectPreviousHistory() {
-        guard !history.isEmpty else { return }
+    func selectPreviousSidebarItem() {
+        let items = allSidebarItems
+        guard !items.isEmpty else { return }
 
-        if let lastSelection = selection.first, case .history(let id) = lastSelection {
-            if let currentIndex = history.firstIndex(where: { $0.id == id }) {
-                let nextIndex = currentIndex + 1
-                if nextIndex < history.count {
-                    selection = [.history(history[nextIndex].id)]
-                }
-            }
-        } else {
-            selection = [.history(history[0].id)]
-        }
-
+        let currentIndex = items.firstIndex { selection.contains($0) } ?? 0
+        let prevIndex = (currentIndex - 1 + items.count) % items.count
+        selection = [items[prevIndex]]
         focusEditor()
     }
 
