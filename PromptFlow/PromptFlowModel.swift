@@ -218,13 +218,7 @@ final class PromptFlowModel: ObservableObject {
         
         var finalName = templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
         if finalName.isEmpty {
-            let firstWord = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
-                .components(separatedBy: .whitespacesAndNewlines)
-                .first ?? "Untitled"
-            finalName = String(firstWord.prefix(20))
-            if finalName.isEmpty {
-                finalName = "Untitled"
-            }
+            finalName = generateName(from: promptText)
             templateNameBuffer = finalName
         }
 
@@ -254,11 +248,7 @@ final class PromptFlowModel: ObservableObject {
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        let firstWord = text.components(separatedBy: .whitespacesAndNewlines).first ?? "Untitled"
-        var finalName = String(firstWord.prefix(20))
-        if finalName.isEmpty {
-            finalName = "Untitled"
-        }
+        let finalName = generateName(from: text)
 
         switch first {
         case .reserve(let id):
@@ -280,6 +270,22 @@ final class PromptFlowModel: ObservableObject {
         default:
             break
         }
+    }
+
+    private func generateName(from text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Untitled" }
+
+        let words = trimmed.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+
+        for i in 0..<min(words.count, 3) {
+            if words[i].count > 3 {
+                return String(words[i].prefix(20))
+            }
+        }
+
+        return String(trimmed.prefix(20))
     }
 
     func applyTemplate() {
