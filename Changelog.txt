@@ -1,13 +1,6 @@
-## 0.1.8 (9) - 2026-05-10
-
-### Features
-- Reserve機能を追加（プロンプトの一時保存、プレーンテキスト保存）
-- ストレージ設定を統合し、Templates/Reservesを同一ディレクトリで管理
-- サイドバー各セクションのヘッダーに検索・追加ボタンを配置
-- 検索パネルでの Ctrl+P/N によるナビゲーションをサポート
-
-### Bug Fixes
-- Submit target から「Unknown App」等を除外するよう改善
-- アプリがフォアグラウンドかつウィンドウ非表示時のHotkey挙動を改善
-- Reserve検索時に選択したものと異なる内容が転写される不具合を修正
-- 編集中のモードに応じたReserveボタンの有効/無効制御を最適化
+- Command+Fによるグローバル・インクリメンタル検索を実装（Templates/Reserves/Historyを横断）
+- 検索結果をTemplates/Reserves/Historyのセクションに分けて表示
+- Command+Hの挙動を、最新の履歴とCurrent Promptのトグルに改善
+- Command+N/Pによるサイドバー全項目（Templates/Reserves/History）の循環選択をサポート
+- テンプレートとReserve保存時のタイトル自動生成ロジックをより適切に改善
+- 履歴・検索結果のキーボード操作（Cmd+N/P, 矢印キー, Enter, Esc）の最適化
