@@ -17,8 +17,8 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
 - **Global Hotkey Accessibility**: Open PromptFlow instantly from anywhere with a simple shortcut (default: double-tap **Shift**).
 - **Direct Submission**: Seamlessly paste your prompts into the application you were just using with a single command.
-- **Smart History**: Automatically tracks your past prompts, so you can reuse and refine them. Unsaved changes to Templates or Reserves are also backed up to history.
-- **Templates & Reserves**: Organize frequently used prompt structures. Use search panels to find and apply them in seconds.
+- **Smart History**: Automatically tracks your past prompts for easy reuse and refinement. Unsaved changes to Templates or Reserves are also captured in history.
+- **Templates & Reserves**: Organize frequently used structures. Use the global search to find and apply them instantly.
 - **Vim Mode Support**: For power users, a full Vim keybinding mode is available, powered by CodeMirror 6.
 - **Native Experience**: A clean, two-pane layout built with SwiftUI that respects macOS design patterns and system preferences.
 
@@ -31,11 +31,11 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 | `Double Shift` | Open PromptFlow / Toggle back to target app |
 | `Cmd + S` | **Submit**: Return to previous app and paste prompt |
 | `Cmd + C` | **Copy**: Copy full prompt to clipboard |
-| `Cmd + N` | **Next Item**: Select the next item in the sidebar |
-| `Cmd + P` | **Previous Item**: Select the previous item in the sidebar |
-| `Cmd + H` | **History**: Select the latest or previous history item |
+| `Cmd + F` | **Global Search**: Search across Templates, Reserves, and History |
+| `Cmd + N` | **Next Item**: Cycle forward through sidebar items |
+| `Cmd + P` | **Previous Item**: Cycle backward through sidebar items |
+| `Cmd + H` | **History Toggle**: Toggle between latest history and current prompt |
 | `Cmd + T` | Open **Template Search** panel |
-
 | `Cmd + R` | Open **Reserve Search** panel |
 | `Cmd + E` | Focus the **Editor** |
 | `Cmd + L` | Focus the **Sidebar List** |
@@ -47,7 +47,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
 1. Download the latest version `PromptFlow-x.x.x.dmg
 ` from the [Releases](https://github.com/tokorom/PromptFlow/releases) page.
-2. Drag **PromptFlow.app** to your `/Applications` folder.
+2. Open `PromptFlow-x.x.x.dmg` and Drag `PromptFlow.app` to your `/Applications` folder.
 3. Upon first launch, you will be prompted to grant **Accessibility** permissions. This is required for:
    - Detecting the previous application to enable "Submit".
    - Automatically pasting text into other apps.
