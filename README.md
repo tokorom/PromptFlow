@@ -4,6 +4,14 @@
 
 PromptFlow is a native macOS application designed to streamline the way you interact with AI agents. It serves as a dedicated workspace to draft, manage, and instantly submit prompts to any application on your Mac.
 
+## Fast Workflow
+
+PromptFlow is built for speed. Focus on your thoughts, not the UI:
+
+1. **Invoke**: Double-tap **Shift** from any input field in any app to bring up PromptFlow.
+2. **Draft**: Type your prompt in the clean, distraction-free editor.
+3. **Submit**: Press **Cmd + S** to automatically return to your previous app and paste the prompt.
+
 ## Key Features
 
 - **Global Hotkey Accessibility**: Open PromptFlow instantly from anywhere with a simple shortcut (default: double-tap **Shift**).
