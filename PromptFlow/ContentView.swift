@@ -162,7 +162,12 @@ struct ContentView: View {
                 model.selectPreviousSidebarItem()
             }
             .keyboardShortcut("p", modifiers: .command)
-            .disabled(model.isTemplateSelected || model.isReserveSelected)
+            .opacity(0)
+
+            Button("") {
+                model.selectPreviousHistory()
+            }
+            .keyboardShortcut("h", modifiers: .command)
             .opacity(0)
 
             if !settings.usesVimKeyBindings {
@@ -440,7 +445,6 @@ struct ContentView: View {
                         } label: {
                             Label("Prompt", systemImage: "arrow.right.square")
                         }
-                        .keyboardShortcut("p", modifiers: .command)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.promptText.isEmpty || (model.selection.first != .newTemplate && currentTemplate == nil))
                         .fixedSize()
@@ -498,7 +502,6 @@ struct ContentView: View {
                         } label: {
                             Label("Prompt", systemImage: "arrow.right.square")
                         }
-                        .keyboardShortcut("p", modifiers: .command)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.promptText.isEmpty || currentReserve == nil)
                         .fixedSize()
