@@ -251,24 +251,25 @@ final class PromptFlowModel: ObservableObject {
     func saveReserve() {
         guard selection.count == 1, let first = selection.first else { return }
 
+        let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        let firstWord = text.components(separatedBy: .whitespacesAndNewlines).first ?? "Untitled"
+        var finalName = String(firstWord.prefix(10))
+        if finalName.isEmpty {
+            finalName = "Untitled"
+        }
+
         switch first {
         case .reserve(let id):
             if let index = reserves.firstIndex(where: { $0.id == id }) {
+                reserves[index].name = finalName
                 reserves[index].text = promptText
                 reserves[index].updatedAt = Date()
                 saveReserveFile(&reserves[index])
                 sortReserves()
             }
         case .newReserve:
-            let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return }
-
-            let firstWord = text.components(separatedBy: .whitespacesAndNewlines).first ?? "Untitled"
-            var finalName = String(firstWord.prefix(10))
-            if finalName.isEmpty {
-                finalName = "Untitled"
-            }
-
             var newReserve = PromptReserve(name: finalName, text: text)
             saveReserveFile(&newReserve)
             reserves.insert(newReserve, at: 0)
