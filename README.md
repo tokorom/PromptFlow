@@ -12,7 +12,7 @@ PromptFlow is a native macOS application designed to streamline the way you inte
 
 PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
-1. **Invoke**: Double-tap **Shift** from any input field in any app to bring up PromptFlow.
+1. **Invoke**: Double-tap **Command** from any input field in any app to bring up PromptFlow.
 2. **Draft**: Type your prompt in the clean, distraction-free editor.
 3. **Submit**: Press **Cmd + S** to automatically return to your previous app and paste the prompt.
 
@@ -22,7 +22,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
 ## Key Features
 
-- **Global Hotkey Accessibility**: Open PromptFlow instantly from anywhere with a simple shortcut (default: double-tap **Shift**).
+- **Global Hotkey Accessibility**: Open PromptFlow instantly from anywhere with a simple shortcut (default: double-tap **Command**).
 - **Direct Submission**: Seamlessly paste your prompts into the application you were just using with a single command.
 - **Smart History**: Automatically tracks your past prompts for easy reuse and refinement. Unsaved changes to Templates or Reserves are also captured in history.
 - **Templates & Reserves**: Organize frequently used structures. Use the global search to find and apply them instantly.
@@ -37,7 +37,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
 | Shortcut | Action |
 | --- | --- |
-| `Double Shift` | Open PromptFlow / Toggle back to target app |
+| `Double Command` | Open PromptFlow / Toggle back to target app |
 | `Cmd + S` | **Submit**: Return to previous app and paste prompt |
 | `Cmd + C` | **Copy**: Copy full prompt to clipboard |
 | `Cmd + F` | **Global Search**: Search across Templates, Reserves, and History |

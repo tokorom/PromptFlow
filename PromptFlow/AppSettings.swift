@@ -102,7 +102,7 @@ final class AppSettings: ObservableObject {
 
     init(userDefaults: UserDefaults = .standard) {
         let rawHotkey = userDefaults.string(forKey: Self.hotkeyKey)
-        hotkey = rawHotkey.flatMap(HotkeyTrigger.init(rawValue:)) ?? .doubleShift
+        hotkey = rawHotkey.flatMap(HotkeyTrigger.init(rawValue:)) ?? .doubleCommand
         usesVimKeyBindings = userDefaults.bool(forKey: Self.vimKeyBindingsKey)
         
         var limit = userDefaults.integer(forKey: Self.historyLimitKey)
