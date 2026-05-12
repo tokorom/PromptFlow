@@ -18,6 +18,7 @@ final class HotkeyController {
     private var localKeyDownMonitor: Any?
     private var lastPressDate: Date?
     private var wasPressed = false
+    private var tapCount = 0
 
     private let maximumDoubleTapInterval: TimeInterval = 0.45
 
@@ -64,6 +65,7 @@ final class HotkeyController {
     func reset() {
         lastPressDate = nil
         wasPressed = false
+        tapCount = 0
     }
 
     func stop() {
@@ -95,23 +97,43 @@ final class HotkeyController {
             return
         }
 
-        let modifierFlag = trigger.modifierFlag
-        let isPressed = event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(modifierFlag)
+        let targetMask = trigger.modifierFlag
+        let currentModifiers = event.modifierFlags.intersection([.shift, .control, .option, .command])
 
-        defer {
-            wasPressed = isPressed
-        }
-
-        guard isPressed, !wasPressed else {
+        if !currentModifiers.isEmpty && currentModifiers != targetMask {
+            reset()
             return
         }
 
-        let now = Date()
-        if let lastPressDate, now.timeIntervalSince(lastPressDate) <= maximumDoubleTapInterval {
-            self.lastPressDate = nil
-            model?.openFromShortcut()
-        } else {
-            lastPressDate = now
+        let isTargetPressed = currentModifiers == targetMask
+
+        defer {
+            wasPressed = isTargetPressed
+        }
+
+        if isTargetPressed && !wasPressed {
+            // Key Down
+            let now = Date()
+            if tapCount == 0 {
+                tapCount = 1
+                lastPressDate = now
+            } else if tapCount == 1 {
+                if let lastDate = lastPressDate, now.timeIntervalSince(lastDate) <= maximumDoubleTapInterval {
+                    tapCount = 2
+                } else {
+                    tapCount = 1
+                    lastPressDate = now
+                }
+            } else {
+                tapCount = 1
+                lastPressDate = now
+            }
+        } else if !isTargetPressed && wasPressed {
+            // Key Up
+            if tapCount == 2 {
+                model?.openFromShortcut()
+                reset()
+            }
         }
     }
 }
