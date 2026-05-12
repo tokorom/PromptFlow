@@ -1,7 +1,7 @@
 # PromptFlow
 
 <p align="center">
-![LOGO](./docs/images/logo.png)
+<img src="./docs/images/logo.png" alt="LOGO" />
 </p>
 
 PromptFlow is a native macOS application designed to streamline the way you interact with AI agents. It serves as a dedicated workspace to draft, manage, and instantly submit prompts to any application on your Mac.
@@ -15,7 +15,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 3. **Submit**: Press **Cmd + S** to automatically return to your previous app and paste the prompt.
 
 <p align="center">
-![DEMO](./docs/images/demo.gif)
+<img src="./docs/images/demo.gif" alt="DEMO" />
 </p>
 
 ## Key Features
@@ -28,7 +28,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 - **Native Experience**: A clean, two-pane layout built with SwiftUI that respects macOS design patterns and system preferences.
 
 <p align="center">
-![TEMPLATES](./docs/images/templates.png)
+<img src="./docs/images/templates.png" alt="TEMPLATES" />
 </p>
 
 ## Keyboard Shortcuts
