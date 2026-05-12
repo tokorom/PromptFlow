@@ -1,6 +1,5 @@
 # PromptFlow
 
-<!-- [APP_LOGO]: Placeholder for the app icon (128x128 or 256x256) -->
 ![LOGO](./docs/images/logo.png)
 
 PromptFlow is a native macOS application designed to streamline the way you interact with AI agents. It serves as a dedicated workspace to draft, manage, and instantly submit prompts to any application on your Mac.
@@ -13,6 +12,8 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 2. **Draft**: Type your prompt in the clean, distraction-free editor.
 3. **Submit**: Press **Cmd + S** to automatically return to your previous app and paste the prompt.
 
+![DEMO](./docs/images/demo.gif)
+
 ## Key Features
 
 - **Global Hotkey Accessibility**: Open PromptFlow instantly from anywhere with a simple shortcut (default: double-tap **Shift**).
@@ -22,7 +23,7 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 - **Vim Mode Support**: For power users, a full Vim keybinding mode is available, powered by CodeMirror 6.
 - **Native Experience**: A clean, two-pane layout built with SwiftUI that respects macOS design patterns and system preferences.
 
-<!-- [SCREENSHOT_MAIN]: Placeholder for the main window screenshot showing the two-pane layout with a prompt in the editor -->
+![TEMPLATES](./docs/images/templates.png)
 
 ## Keyboard Shortcuts
 
@@ -40,8 +41,6 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 | `Cmd + E` | Focus the **Editor** |
 | `Cmd + L` | Focus the **Sidebar List** |
 | `Cmd + ,` | Open **Settings** |
-
-<!-- [SCREENSHOT_SEARCH]: Placeholder for the Template Search panel showing real-time filtering -->
 
 ## Installation
 
