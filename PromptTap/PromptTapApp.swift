@@ -1,6 +1,6 @@
 //
-//  PromptFlowApp.swift
-//  PromptFlow
+//  PromptTapApp.swift
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -8,10 +8,10 @@
 import SwiftUI
 
 @main
-struct PromptFlowApp: App {
+struct PromptTapApp: App {
     @Environment(\.openWindow) private var openWindow
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var model = PromptFlowModel()
+    @StateObject private var model = PromptTapModel()
     @StateObject private var settings = AppSettings()
 
     var body: some Scene {
@@ -28,8 +28,8 @@ struct PromptFlowApp: App {
             PromptCommands(model: model)
             CommandGroup(replacing: .newItem) { }
             CommandGroup(replacing: .help) {
-                Button("PromptFlow Help") {
-                    if let url = URL(string: "https://github.com/tokorom/PromptFlow/blob/main/README.md") {
+                Button("PromptTap Help") {
+                    if let url = URL(string: "https://github.com/tokorom/PromptTap/blob/main/README.md") {
                         NSWorkspace.shared.open(url)
                     }
                 }
@@ -51,7 +51,7 @@ struct PromptFlowApp: App {
 }
 
 struct PromptCommands: Commands {
-    @ObservedObject var model: PromptFlowModel
+    @ObservedObject var model: PromptTapModel
 
     var body: some Commands {
         CommandMenu("Prompt") {

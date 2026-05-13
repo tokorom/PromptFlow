@@ -10,7 +10,7 @@ build_number_key := "APP_BUILD_NUMBER"
 marketing_version_key := "APP_VERSION"
 
 github_release_script := "./scripts/github_release.zsh"
-github_repo := "tokorom/PromptFlow"
+github_repo := "tokorom/PromptTap"
 github_token := "${GITHUB_TOKEN}"
 
 archive_script := "./scripts/archive"

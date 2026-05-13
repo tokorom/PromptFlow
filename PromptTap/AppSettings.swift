@@ -1,6 +1,6 @@
 //
 //  AppSettings.swift
-//  PromptFlow
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //

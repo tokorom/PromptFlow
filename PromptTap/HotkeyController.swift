@@ -1,6 +1,6 @@
 //
 //  HotkeyController.swift
-//  PromptFlow
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -9,7 +9,7 @@ import AppKit
 
 @MainActor
 final class HotkeyController {
-    private weak var model: PromptFlowModel?
+    private weak var model: PromptTapModel?
     private weak var settings: AppSettings?
 
     private var globalMonitor: Any?
@@ -22,7 +22,7 @@ final class HotkeyController {
 
     private let maximumDoubleTapInterval: TimeInterval = 0.45
 
-    init(model: PromptFlowModel, settings: AppSettings) {
+    init(model: PromptTapModel, settings: AppSettings) {
         self.model = model
         self.settings = settings
     }

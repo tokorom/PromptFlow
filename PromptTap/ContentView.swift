@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  PromptFlow
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var model: PromptFlowModel
+    @EnvironmentObject private var model: PromptTapModel
     @EnvironmentObject private var settings: AppSettings
 
     @State private var entriesToDelete: Set<PromptHistory> = []

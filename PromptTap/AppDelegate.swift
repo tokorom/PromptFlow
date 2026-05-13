@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  PromptFlow
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -12,9 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotkeyController: HotkeyController?
     private var activationObserver: NSObjectProtocol?
     private var cancellables: Set<AnyCancellable> = []
-    private weak var model: PromptFlowModel?
+    private weak var model: PromptTapModel?
 
-    func configure(model: PromptFlowModel, settings: AppSettings) {
+    func configure(model: PromptTapModel, settings: AppSettings) {
         guard self.model == nil else {
             return
         }

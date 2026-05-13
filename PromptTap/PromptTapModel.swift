@@ -1,6 +1,6 @@
 //
-//  PromptFlowModel.swift
-//  PromptFlow
+//  PromptTapModel.swift
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -65,7 +65,7 @@ enum SidebarSelection: Hashable {
 }
 
 @MainActor
-final class PromptFlowModel: ObservableObject {
+final class PromptTapModel: ObservableObject {
     @Published private(set) var promptText = ""
     @Published private(set) var currentPromptBuffer = ""
     @Published var templateNameBuffer = ""
@@ -155,7 +155,7 @@ final class PromptFlowModel: ObservableObject {
         if let previousApplicationName {
             "Submit target: \(previousApplicationName)"
         } else {
-            "Open PromptFlow from another app to enable Submit"
+            "Open PromptTap from another app to enable Submit"
         }
     }
 
@@ -738,7 +738,7 @@ final class PromptFlowModel: ObservableObject {
 
     private var historyURL: URL {
         let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
+        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptTap")
         try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
         return appSupport.appendingPathComponent("history.json")
     }
@@ -764,7 +764,7 @@ final class PromptFlowModel: ObservableObject {
 
     var defaultStorageDirectoryURL: URL {
         let paths = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptFlow")
+        let appSupport = paths[0].appendingPathComponent(Bundle.main.bundleIdentifier ?? "PromptTap")
         try? FileManager.default.createDirectory(at: appSupport, withIntermediateDirectories: true)
         return appSupport
     }

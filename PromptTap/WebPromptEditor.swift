@@ -1,6 +1,6 @@
 //
 //  WebPromptEditor.swift
-//  PromptFlow
+//  PromptTap
 //
 //  Created by Yuta Tokoro on 2026/05/06.
 //
@@ -25,7 +25,7 @@ struct WebPromptEditor: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.userContentController.add(context.coordinator, name: "promptFlow")
+        configuration.userContentController.add(context.coordinator, name: "promptTap")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -68,7 +68,7 @@ struct WebPromptEditor: NSViewRepresentable {
                 window.makeFirstResponder(webView)
             }
             let enterInsertMode = focusRequestID > 1000
-            context.coordinator.callJavaScript("window.promptFlowEditor?.focusEditor(\(enterInsertMode));")
+            context.coordinator.callJavaScript("window.promptTapEditor?.focusEditor(\(enterInsertMode));")
         }
     }
 }
@@ -92,7 +92,7 @@ extension WebPromptEditor {
             callJavaScriptFunction("setVim", argument: parent.usesVimKeyBindings)
             callJavaScriptFunction("setLineWrapping", argument: parent.lineWrapping)
             let enterInsertMode = parent.focusRequestID > 1000
-            callJavaScript("window.promptFlowEditor?.focusEditor(\(enterInsertMode));")
+            callJavaScript("window.promptTapEditor?.focusEditor(\(enterInsertMode));")
         }
 
         nonisolated func userContentController(
@@ -125,7 +125,7 @@ extension WebPromptEditor {
                 parent.onSearchTemplates()
             case "editorLoadFailed":
                 let message = body["message"] as? String ?? "Unknown error"
-                print("PromptFlow editor fell back to textarea: \(message)")
+                print("PromptTap editor fell back to textarea: \(message)")
             default:
                 break
             }
@@ -137,12 +137,12 @@ extension WebPromptEditor {
                 return
             }
 
-            callJavaScript("window.promptFlowEditor?.\(name)(\(json));")
+            callJavaScript("window.promptTapEditor?.\(name)(\(json));")
         }
 
         func callJavaScriptFunction(_ name: String, argument: Bool) {
             let boolString = argument ? "true" : "false"
-            callJavaScript("window.promptFlowEditor?.\(name)(\(boolString));")
+            callJavaScript("window.promptTapEditor?.\(name)(\(boolString));")
         }
 
         func callJavaScript(_ script: String) {
@@ -232,9 +232,9 @@ private extension WebPromptEditor {
     </head>
     <body>
       <div id="editor"></div>
-      <script src="PromptFlowEditorBundle.js"></script>
+      <script src="PromptTapEditorBundle.js"></script>
       <script>
-        const bridge = window.webkit?.messageHandlers?.promptFlow;
+        const bridge = window.webkit?.messageHandlers?.promptTap;
         const post = (message) => bridge?.postMessage(message);
 
         let view = null;
@@ -360,9 +360,9 @@ private extension WebPromptEditor {
         };
 
         const setupCodeMirror = () => {
-          const modules = window.PromptFlowEditorBundle;
+          const modules = window.PromptTapEditorBundle;
           if (!modules) {
-            throw new Error("PromptFlowEditorBundle.js was not loaded");
+            throw new Error("PromptTapEditorBundle.js was not loaded");
           }
 
           const {
@@ -468,7 +468,7 @@ private extension WebPromptEditor {
           applyState();
         };
 
-        window.promptFlowEditor = {
+        window.promptTapEditor = {
           setText(value) {
             pendingText = value;
             applyState();
@@ -499,7 +499,7 @@ private extension WebPromptEditor {
         }
 
         setTimeout(() => {
-          window.promptFlowEditor.focusEditor(false);
+          window.promptTapEditor.focusEditor(false);
         }, 300);
       </script>
     </body>
