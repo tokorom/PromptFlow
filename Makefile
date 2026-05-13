@@ -1,5 +1,7 @@
 SHELL := /bin/zsh
 
+.DEFAULT_GOAL := help
+
 bump_type=minor
 deploy_branch=deploy
 
@@ -38,12 +40,15 @@ deploy: bump_version
 	git ls-remote --exit-code . origin/$(deploy_branch) && git push origin --delete $(deploy_branch) || true
 	git push origin HEAD:$(deploy_branch)
 	$(update_cask_script) $(cask_repo) $(cask_name) $(DMG_PATH)
+
 help:
 	@echo "[Usage]"
-	@echo "  make deploy_to_xcode_cloud"
-	@echo "  make deploy_to_xcode_cloud bump_type=minor"
-	@echo "  make deploy_to_xcode_cloud bump_type=major"
+	@echo "  make deploy"
+	@echo "  make deploy bump_type=patch"
+	@echo "  make deploy bump_type=major"
+
 lint:
-	swift format lint --recursive app
+	xcrun swift-format lint --recursive PromptTap
+
 format:
-	swift format format --recursive --in-place app
+	xcrun swift-format format --recursive --in-place PromptTap
