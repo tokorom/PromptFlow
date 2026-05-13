@@ -586,6 +586,19 @@ final class PromptTapModel: ObservableObject {
         selection = [.reserve(newReserve.id)]
     }
 
+    func templatePrompt() {
+        let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        let finalName = generateName(from: text)
+
+        var newTemplate = PromptTemplate(name: finalName, text: text)
+        saveTemplateFile(&newTemplate)
+        templates.insert(newTemplate, at: 0)
+        sortTemplates()
+        selection = [.template(newTemplate.id)]
+    }
+
     func applyReserve(_ reserve: PromptReserve) {
         if let index = reserves.firstIndex(where: { $0.id == reserve.id }) {
             let text = reserves[index].text

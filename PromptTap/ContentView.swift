@@ -622,6 +622,18 @@ struct ContentView: View {
             .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
 
             Button {
+                model.templatePrompt()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.on.doc")
+                    Text("Template")
+                }
+            }
+            .keyboardShortcut("t", modifiers: [.command, .shift])
+            .disabled(model.promptText.isEmpty || model.isTemplateSelected)
+            .help("Save the current prompt as a template")
+
+            Button {
                 model.reservePrompt()
             } label: {
                 HStack(spacing: 6) {
@@ -629,7 +641,8 @@ struct ContentView: View {
                     Text("Reserve")
                 }
             }
-            .disabled(model.promptText.isEmpty || model.isTemplateSelected || model.isReserveSelected)
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(model.promptText.isEmpty || model.isReserveSelected)
             .help("Save the current prompt as a reserve")
 
             Spacer()
