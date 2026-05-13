@@ -300,23 +300,33 @@ private extension WebPromptEditor {
 
         const applyState = () => {
           if (view) {
+            const transaction = {};
+            let needsDispatch = false;
+
             if (view.state.doc.toString() !== pendingText) {
-              view.dispatch({
-                changes: { from: 0, to: view.state.doc.length, insert: pendingText }
-              });
+              transaction.changes = { from: 0, to: view.state.doc.length, insert: pendingText };
+              needsDispatch = true;
             }
+
+            const effects = [];
             if (vimCompartment && vimExtensionFactory && appliedVim !== pendingVim) {
-              view.dispatch({
-                effects: vimCompartment.reconfigure(pendingVim ? vimExtension() : [])
-              });
+              effects.push(vimCompartment.reconfigure(pendingVim ? vimExtension() : []));
               appliedVim = pendingVim;
             }
             if (lineWrappingCompartment && appliedLineWrapping !== pendingLineWrapping) {
-              view.dispatch({
-                effects: lineWrappingCompartment.reconfigure(pendingLineWrapping ? lineWrappingExtension : [])
-              });
+              effects.push(lineWrappingCompartment.reconfigure(pendingLineWrapping ? lineWrappingExtension : []));
               appliedLineWrapping = pendingLineWrapping;
             }
+
+            if (effects.length > 0) {
+              transaction.effects = effects;
+              needsDispatch = true;
+            }
+
+            if (needsDispatch) {
+              view.dispatch(transaction);
+            }
+
             view.dom.classList.toggle("prompttap-lineWrapping", pendingLineWrapping);
             if (pendingFocus) {
               view.focus();
@@ -474,10 +484,20 @@ private extension WebPromptEditor {
             applyState();
           },
           setVim(enabled) {
+            if (view) {
+              pendingText = view.state.doc.toString();
+            } else if (textarea) {
+              pendingText = textarea.value;
+            }
             pendingVim = enabled;
             applyState();
           },
           setLineWrapping(enabled) {
+            if (view) {
+              pendingText = view.state.doc.toString();
+            } else if (textarea) {
+              pendingText = textarea.value;
+            }
             pendingLineWrapping = enabled;
             applyState();
           },
