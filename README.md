@@ -61,13 +61,17 @@ brew install --cask prompttap
 
 ### Manual Installation
 
-1. Download the latest version `PromptTap-x.x.x.dmg
-` from the [Releases](https://github.com/tokorom/PromptTap/releases) page.
+1. Download the latest version `PromptTap-x.x.x.dmg` from the [Releases](https://github.com/tokorom/PromptTap/releases) page.
 2. Open `PromptTap-x.x.x.dmg` and Drag `PromptTap.app` to your `/Applications` folder.
-3. Upon first launch, you will be prompted to grant **Accessibility** permissions. This is required for:
-   - Detecting the previous application to enable "Submit".
-   - Automatically pasting text into other apps.
-   - Global hotkey detection.
+
+## Accessibility Permissions
+
+Upon first launch, you will be prompted to grant **Accessibility** permissions. This is required for:
+- Detecting the previous application to enable "Submit".
+- Automatically pasting text into other apps.
+- Global hotkey detection.
+
+**Note**: If you grant the permission while the app is running, please **restart PromptTap** for the changes to take effect and for the Global Hotkey to become active.
 
 ## Configuration
 
