@@ -272,7 +272,7 @@ struct ContentView: View {
                         model.requestTemplateSearch()
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .shortcutHelp("Search Templates", shortcut: "⌘T", placement: .below)
+                            .shortcutHelp("Search Templates", shortcut: "⌘T", placement: .below, size: .compact)
                     }
                     .buttonStyle(.plain)
 
@@ -320,7 +320,7 @@ struct ContentView: View {
                         model.requestReserveSearch()
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .shortcutHelp("Search Reserves", shortcut: "⌘R", placement: .below)
+                            .shortcutHelp("Search Reserves", shortcut: "⌘R", placement: .below, size: .compact)
                     }
                     .buttonStyle(.plain)
 
@@ -501,7 +501,7 @@ struct ContentView: View {
                             model.applyTemplate()
                         } label: {
                             Label("Prompt", systemImage: "arrow.right.square")
-                                .shortcutHelp("Prompt with this template", shortcut: "⌘⇧P")
+                                .shortcutHelp("Prompt with this template", shortcut: "⌘⇧P", placement: .below)
                         }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("p", modifiers: [.command, .shift])
@@ -512,7 +512,7 @@ struct ContentView: View {
                             model.saveTemplate()
                         } label: {
                             Label("Save", systemImage: "square.and.arrow.down")
-                                .shortcutHelp("Save this template", shortcut: "⌘⇧S")
+                                .shortcutHelp("Save this template", shortcut: "⌘⇧S", placement: .below)
                         }
                         .buttonStyle(.bordered)
                         .keyboardShortcut("s", modifiers: [.command, .shift])
@@ -562,7 +562,7 @@ struct ContentView: View {
                             }
                         } label: {
                             Label("Prompt", systemImage: "arrow.right.square")
-                                .shortcutHelp("Prompt with this reserve", shortcut: "⌘⇧P")
+                                .shortcutHelp("Prompt with this reserve", shortcut: "⌘⇧P", placement: .below)
                         }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("p", modifiers: [.command, .shift])
@@ -573,7 +573,7 @@ struct ContentView: View {
                             model.saveReserve()
                         } label: {
                             Label("Save", systemImage: "square.and.arrow.down")
-                                .shortcutHelp("Save this reserve", shortcut: "⌘⇧S")
+                                .shortcutHelp("Save this reserve", shortcut: "⌘⇧S", placement: .below)
                         }
                         .buttonStyle(.bordered)
                         .keyboardShortcut("s", modifiers: [.command, .shift])
@@ -1030,21 +1030,29 @@ private extension View {
     func shortcutHelp(
         _ message: String,
         shortcut: String,
-        placement: ShortcutHelpPlacement = .above
+        placement: ShortcutHelpPlacement = .trailing,
+        size: ShortcutHelpSize = .regular
     ) -> some View {
-        modifier(ShortcutHelpModifier(message: message, shortcut: shortcut, placement: placement))
+        modifier(ShortcutHelpModifier(shortcut: shortcut, placement: placement, size: size))
     }
 }
 
 private enum ShortcutHelpPlacement {
+    case trailing
+    case leading
     case above
     case below
 }
 
+private enum ShortcutHelpSize {
+    case regular
+    case compact
+}
+
 private struct ShortcutHelpModifier: ViewModifier {
-    let message: String
     let shortcut: String
     let placement: ShortcutHelpPlacement
+    let size: ShortcutHelpSize
 
     @State private var isHovering = false
 
@@ -1053,9 +1061,9 @@ private struct ShortcutHelpModifier: ViewModifier {
             .onHover { isHovering = $0 }
             .overlay(alignment: placement.alignment) {
                 if isHovering {
-                    ShortcutHelpTip(message: message, shortcut: shortcut)
+                    ShortcutHelpTip(shortcut: shortcut, size: size)
                         .fixedSize()
-                        .offset(y: placement.yOffset)
+                        .offset(x: placement.xOffset(for: size), y: placement.yOffset(for: size))
                         .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: placement.scaleAnchor)))
                         .allowsHitTesting(false)
                         .zIndex(1)
@@ -1068,6 +1076,10 @@ private struct ShortcutHelpModifier: ViewModifier {
 private extension ShortcutHelpPlacement {
     var alignment: Alignment {
         switch self {
+        case .trailing:
+            .trailing
+        case .leading:
+            .leading
         case .above:
             .top
         case .below:
@@ -1075,17 +1087,34 @@ private extension ShortcutHelpPlacement {
         }
     }
 
-    var yOffset: CGFloat {
+    func xOffset(for size: ShortcutHelpSize) -> CGFloat {
         switch self {
+        case .trailing:
+            size.offsetDistance
+        case .leading:
+            -size.offsetDistance
+        case .above, .below:
+            0
+        }
+    }
+
+    func yOffset(for size: ShortcutHelpSize) -> CGFloat {
+        switch self {
+        case .trailing, .leading:
+            0
         case .above:
-            -38
+            -size.offsetDistance
         case .below:
-            38
+            size.offsetDistance
         }
     }
 
     var scaleAnchor: UnitPoint {
         switch self {
+        case .trailing:
+            .leading
+        case .leading:
+            .trailing
         case .above:
             .bottom
         case .below:
@@ -1094,32 +1123,56 @@ private extension ShortcutHelpPlacement {
     }
 }
 
+private extension ShortcutHelpSize {
+    var font: Font {
+        switch self {
+        case .regular:
+            .system(.headline, design: .rounded).weight(.bold)
+        case .compact:
+            .system(size: 10, weight: .bold, design: .rounded)
+        }
+    }
+
+    var horizontalPadding: CGFloat {
+        switch self {
+        case .regular:
+            8
+        case .compact:
+            5
+        }
+    }
+
+    var verticalPadding: CGFloat {
+        switch self {
+        case .regular:
+            4
+        case .compact:
+            2
+        }
+    }
+
+    var offsetDistance: CGFloat {
+        switch self {
+        case .regular:
+            72
+        case .compact:
+            48
+        }
+    }
+}
+
 private struct ShortcutHelpTip: View {
-    let message: String
     let shortcut: String
+    let size: ShortcutHelpSize
 
     var body: some View {
-        HStack(spacing: 8) {
-            Text(message)
-                .font(.caption)
-                .foregroundStyle(.primary)
-
-            Text(shortcut)
-                .font(.system(.headline, design: .rounded).weight(.bold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.accentColor, in: Capsule())
-        }
-        .padding(.leading, 10)
-        .padding(.trailing, 6)
-        .padding(.vertical, 6)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.quaternary)
-        }
-        .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
+        Text(shortcut)
+            .font(size.font)
+            .foregroundStyle(.white)
+            .padding(.horizontal, size.horizontalPadding)
+            .padding(.vertical, size.verticalPadding)
+            .background(Color.accentColor, in: Capsule())
+            .shadow(color: .black.opacity(0.18), radius: 5, y: 2)
     }
 }
 
