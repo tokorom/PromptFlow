@@ -81,5 +81,13 @@ In the **Settings** (`Cmd + ,`), you can customize:
 - **History**: Set the maximum number of history items to retain.
 - **Storage**: Choose a custom folder to store your Templates and Reserves as plain `.txt` files for easy syncing or external editing.
 
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
 ---
 *Created by [tokorom](https://github.com/tokorom).*
