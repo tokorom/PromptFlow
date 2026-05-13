@@ -568,11 +568,7 @@ final class PromptTapModel: ObservableObject {
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        let firstWord = text.components(separatedBy: .whitespacesAndNewlines).first ?? "Untitled"
-        var finalName = String(firstWord.prefix(10))
-        if finalName.isEmpty {
-            finalName = "Untitled"
-        }
+        let finalName = generateName(from: text)
 
         var newReserve = PromptReserve(name: finalName, text: text)
         saveReserveFile(&newReserve)
