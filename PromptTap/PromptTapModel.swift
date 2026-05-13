@@ -496,14 +496,15 @@ final class PromptTapModel: ObservableObject {
     func openFromShortcut(isHotkey: Bool = true) {
         if isHotkey && NSApp.isActive {
             let mainWindows = NSApp.windows.filter { $0.identifier?.rawValue.hasPrefix("main") == true }
-            let isMainWindowFrontmost = mainWindows.contains { $0.isKeyWindow }
-            if isMainWindowFrontmost {
-                if previousApplication != nil {
-                    returnToTarget()
-                } else {
-                    shouldCloseMainWindow = true
+            if let window = mainWindows.first(where: { $0.isKeyWindow }) {
+                if window.isOnActiveSpace {
+                    if previousApplication != nil {
+                        returnToTarget()
+                    } else {
+                        shouldCloseMainWindow = true
+                    }
+                    return
                 }
-                return
             }
         }
 
@@ -532,6 +533,7 @@ final class PromptTapModel: ObservableObject {
             shouldOpenMainWindow = true
         } else {
             for window in mainWindows {
+                window.collectionBehavior.insert(.moveToActiveSpace)
                 window.makeKeyAndOrderFront(nil)
             }
         }

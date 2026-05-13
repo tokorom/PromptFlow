@@ -42,6 +42,11 @@ struct ContentView: View {
             bottomToolbar
         }
         .frame(minWidth: 760, minHeight: 480)
+        .onAppear {
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true }) {
+                window.collectionBehavior.insert(.moveToActiveSpace)
+            }
+        }
         .confirmationDialog(
             entriesToDelete.count > 1
                 ? "Are you sure you want to delete \(entriesToDelete.count) history items?"
