@@ -34,7 +34,7 @@ deploy:
 	@DMG_PATH=$$($(archive_script)); \
 	zsh -c "source $(github_release_script) && github_release $(github_repo) $(marketing_version) $(github_token) $(changelog) $$DMG_PATH"
 	git ls-remote --exit-code . origin/$(deploy_branch) && git push origin --delete $(deploy_branch) || true
-	git push origin HEAD:$(deploy_branch)
+	git push origin HEAD:$(deploy_branch); \
 	$(update_cask_script) $(cask_repo) $(cask_name) $$DMG_PATH
 help:
 	@echo "[Usage]"
