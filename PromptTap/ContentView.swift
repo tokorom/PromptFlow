@@ -388,6 +388,20 @@ struct ContentView: View {
             }
         }
         .focused($isListFocused)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if NSEvent.modifierFlags.contains(.command) {
+                        model.shouldSuppressEditorFocusOnNextSelection = true
+                    }
+                }
+        )
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 1.0)
+                .onEnded { _ in
+                    model.shouldSuppressEditorFocusOnNextSelection = true
+                }
+        )
         .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         .onDeleteCommand {
             let selectedHistory = model.selection.compactMap { sel -> PromptHistory? in

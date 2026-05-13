@@ -164,8 +164,13 @@ final class PromptTapModel: ObservableObject {
         loadReserves()
     }
 
+    @Published var shouldSuppressEditorFocusOnNextSelection = false
+
     private func updatePromptTextFromSelection() {
         guard let lastSelection = selection.first else { return }
+
+        let suppressFocus = shouldSuppressEditorFocusOnNextSelection
+        shouldSuppressEditorFocusOnNextSelection = false
 
         Task { @MainActor in
             switch lastSelection {
@@ -189,7 +194,9 @@ final class PromptTapModel: ObservableObject {
                 templateNameBuffer = ""
                 promptText = ""
             }
-            focusEditor()
+            if !suppressFocus {
+                focusEditor()
+            }
         }
     }
 
