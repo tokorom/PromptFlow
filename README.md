@@ -52,6 +52,15 @@ PromptFlow is built for speed. Focus on your thoughts, not the UI:
 
 ## Installation
 
+### Via Homebrew (Recommended)
+
+```bash
+brew tap tokorom/tap
+brew install --cask promptflow
+```
+
+### Manual Installation
+
 1. Download the latest version `PromptFlow-x.x.x.dmg
 ` from the [Releases](https://github.com/tokorom/PromptFlow/releases) page.
 2. Open `PromptFlow-x.x.x.dmg` and Drag `PromptFlow.app` to your `/Applications` folder.
