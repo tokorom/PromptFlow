@@ -274,7 +274,7 @@ struct ContentView: View {
                         Image(systemName: "magnifyingglass")
                     }
                     .buttonStyle(.plain)
-                    .help("Search Templates")
+                    .shortcutHelp("Search Templates", shortcut: "⌘T")
 
                     Button {
                         model.selection = [.newTemplate]
@@ -322,7 +322,7 @@ struct ContentView: View {
                         Image(systemName: "magnifyingglass")
                     }
                     .buttonStyle(.plain)
-                    .help("Search Reserves")
+                    .shortcutHelp("Search Reserves", shortcut: "⌘R")
 
                     Button {
                         model.selection = [.newReserve]
@@ -504,6 +504,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("p", modifiers: [.command, .shift])
+                        .shortcutHelp("Prompt with this template", shortcut: "⌘⇧P")
                         .disabled(model.promptText.isEmpty || (model.selection.first != .newTemplate && currentTemplate == nil))
                         .fixedSize()
 
@@ -514,6 +515,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .keyboardShortcut("s", modifiers: [.command, .shift])
+                        .shortcutHelp("Save this template", shortcut: "⌘⇧S")
                         .disabled(model.promptText.isEmpty)
                         .fixedSize()
                     }
@@ -563,6 +565,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("p", modifiers: [.command, .shift])
+                        .shortcutHelp("Prompt with this reserve", shortcut: "⌘⇧P")
                         .disabled(model.promptText.isEmpty || currentReserve == nil)
                         .fixedSize()
 
@@ -573,6 +576,7 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .keyboardShortcut("s", modifiers: [.command, .shift])
+                        .shortcutHelp("Save this reserve", shortcut: "⌘⇧S")
                         .disabled(model.promptText.isEmpty)
                         .fixedSize()
                     }
@@ -621,7 +625,10 @@ struct ContentView: View {
             }
             .keyboardShortcut("s", modifiers: .command)
             .disabled(!model.canSubmit || model.isSubmitting)
-            .help(model.canSubmit ? "Return to the previous app and paste" : "No previous app is known yet")
+            .shortcutHelp(
+                model.canSubmit ? "Return to the previous app and paste" : "No previous app is known yet",
+                shortcut: "⌘S"
+            )
 
             Button {
                 model.copyPrompt()
@@ -637,7 +644,10 @@ struct ContentView: View {
                 }
             }
             .disabled(!model.isEditorSelectionEmpty || model.isCopying || model.promptText.isEmpty)
-            .help(model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy")
+            .shortcutHelp(
+                model.isEditorSelectionEmpty ? "Copy the full prompt" : "Use the editor selection copy",
+                shortcut: "⌘C"
+            )
 
             Button {
                 model.templatePrompt()
@@ -649,7 +659,7 @@ struct ContentView: View {
             }
             .keyboardShortcut("t", modifiers: [.command, .shift])
             .disabled(model.promptText.isEmpty || model.isTemplateSelected)
-            .help("Save the current prompt as a template")
+            .shortcutHelp("Save the current prompt as a template", shortcut: "⌘⇧T")
 
             Button {
                 model.reservePrompt()
@@ -661,7 +671,7 @@ struct ContentView: View {
             }
             .keyboardShortcut("r", modifiers: [.command, .shift])
             .disabled(model.promptText.isEmpty || model.isReserveSelected)
-            .help("Save the current prompt as a reserve")
+            .shortcutHelp("Save the current prompt as a reserve", shortcut: "⌘⇧R")
 
             Spacer()
 
@@ -1013,6 +1023,12 @@ private struct ReserveSearchKeyMonitor: NSViewRepresentable {
 
             return false
         }
+    }
+}
+
+private extension View {
+    func shortcutHelp(_ message: String, shortcut: String) -> some View {
+        help("\(message) (\(shortcut))")
     }
 }
 
