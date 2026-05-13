@@ -83,7 +83,7 @@ brew install --cask prompttap
 
 ## Changelog
 
-リリースノートとダウンロードリンクは [GitHub Releases ページ](https://github.com/tokorom/PromptTap/releases) から利用可能です。
+リリースノートとダウンロードリンクは [GitHub Releases ページ](https://github.com/tokorom/PromptTap/releases) を参照してください。
 
 ## 貢献について
 
