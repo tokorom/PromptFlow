@@ -114,7 +114,6 @@ final class PromptTapModel: ObservableObject {
     @Published private(set) var reserves: [PromptReserve] = []
     @Published private(set) var isSubmitting = false
     @Published private(set) var isCopying = false
-    @Published var shouldOpenMainWindow = false
     @Published private(set) var globalSearchRequestID = 0
     @Published private(set) var templateSearchRequestID = 0
     @Published private(set) var reserveSearchRequestID = 0
@@ -489,14 +488,19 @@ final class PromptTapModel: ObservableObject {
         if targetHistory.count > 10 {
             targetHistory.removeLast()
         }
-    }
+    @Published var shouldOpenMainWindow = false
+    @Published var shouldCloseMainWindow = false
 
     func openFromShortcut(isHotkey: Bool = true) {
         if isHotkey && NSApp.isActive {
             let mainWindows = NSApp.windows.filter { $0.identifier?.rawValue.hasPrefix("main") == true }
             let isMainWindowFrontmost = mainWindows.contains { $0.isKeyWindow }
             if isMainWindowFrontmost {
-                returnToTarget()
+                if previousApplication != nil {
+                    returnToTarget()
+                } else {
+                    shouldCloseMainWindow = true
+                }
                 return
             }
         }

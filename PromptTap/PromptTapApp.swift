@@ -41,6 +41,12 @@ struct PromptTapApp: App {
                 model.shouldOpenMainWindow = false
             }
         }
+        .onChange(of: model.shouldCloseMainWindow) { _, newValue in
+            if newValue {
+                NSApp.hide(nil)
+                model.shouldCloseMainWindow = false
+            }
+        }
 
         Settings {
             SettingsView()
