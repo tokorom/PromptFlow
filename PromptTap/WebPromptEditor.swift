@@ -244,6 +244,7 @@ private extension WebPromptEditor {
         let lineWrappingCompartment = null;
         let lineWrappingExtension = [];
 
+        let isInitialized = false;
         let pendingText = "";
         let pendingVim = false;
         let pendingLineWrapping = false;
@@ -267,6 +268,7 @@ private extension WebPromptEditor {
         };
 
         const notifyText = (value) => {
+          if (!isInitialized && value === "") return;
           post({ action: "textChanged", text: value });
         };
 
@@ -344,7 +346,7 @@ private extension WebPromptEditor {
                         key: "i", 
                         keyCode: 73, 
                         code: "KeyI", 
-                        which: 73, 
+                        while: 73, 
                         bubbles: true, 
                         cancelable: true 
                       }));
@@ -480,6 +482,7 @@ private extension WebPromptEditor {
 
         window.promptTapEditor = {
           setText(value) {
+            isInitialized = true;
             pendingText = value;
             applyState();
           },

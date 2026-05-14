@@ -594,8 +594,8 @@ final class PromptTapModel: ObservableObject {
         reserves.insert(newReserve, at: 0)
         sortReserves()
 
-        currentPromptBuffer = ""
         selection = [.reserve(newReserve.id)]
+        currentPromptBuffer = ""
     }
 
     func templatePrompt() {
@@ -609,8 +609,8 @@ final class PromptTapModel: ObservableObject {
         templates.insert(newTemplate, at: 0)
         sortTemplates()
 
-        currentPromptBuffer = ""
         selection = [.template(newTemplate.id)]
+        currentPromptBuffer = ""
     }
 
     func applyReserve(_ reserve: PromptReserve) {
