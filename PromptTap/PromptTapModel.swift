@@ -283,16 +283,9 @@ final class PromptTapModel: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "Untitled" }
 
-        let words = trimmed.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-
-        for i in 0..<min(words.count, 3) {
-            if words[i].count > 3 {
-                return String(words[i].prefix(20))
-            }
-        }
-
-        return String(trimmed.prefix(20))
+        // Take the first 20 characters, replacing newlines with spaces for the title
+        let singleLine = trimmed.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return String(singleLine.prefix(20)).trimmingCharacters(in: .whitespaces)
     }
 
     private var allSidebarItems: [SidebarSelection] {
