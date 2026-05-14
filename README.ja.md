@@ -73,6 +73,10 @@ brew install --cask prompttap
 
 **注意**: アプリの起動中に権限を許可した場合は、設定を反映させてグローバルホットキーを有効にするために、**PromptTapを再起動**してください。
 
+<p align="center">
+<img src="./docs/images/accessibility.png" alt="LOGO" />
+</p>
+
 ## 設定
 
 **設定** (`Cmd + ,`) では、以下をカスタマイズできます：

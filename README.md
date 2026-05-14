@@ -73,6 +73,10 @@ Upon first launch, you will be prompted to grant **Accessibility** permissions. 
 
 **Note**: If you grant the permission while the app is running, please **restart PromptTap** for the changes to take effect and for the Global Hotkey to become active.
 
+<p align="center">
+<img src="./docs/images/accessibility.png" alt="LOGO" />
+</p>
+
 ## Configuration
 
 In the **Settings** (`Cmd + ,`), you can customize:
