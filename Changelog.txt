@@ -1,7 +1,7 @@
 ### Added
-- Feature to clear the current prompt after creating a new template or reserve.
+- Command + F: Global search navigation shortcut.
+- Shift + Command + N shortcut to start a new current prompt and move existing content to history.
+- Simplified template/reserve name generation to use the first 20 characters of the text.
 
 ### Fixed
-- Critical issue where editor content became empty after creating or saving templates and reserves due to a race condition.
-- Improved reliability of editor content management by preventing premature text updates from the web editor.
-- Refined state transitions when transferring prompts to templates or reserves.
+- Miscellaneous stability improvements for editor content management.
