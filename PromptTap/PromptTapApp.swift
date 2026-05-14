@@ -61,13 +61,6 @@ struct PromptCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Prompt") {
-            Button("Search") {
-                model.requestGlobalSearch()
-            }
-            .keyboardShortcut("f", modifiers: .command)
-
-            Divider()
-
             Button("Submit") {
                 model.submitPrompt()
             }
@@ -80,6 +73,11 @@ struct PromptCommands: Commands {
             .disabled(!model.isEditorSelectionEmpty || model.promptText.isEmpty)
 
             Divider()
+
+            Button("Search") {
+                model.requestGlobalSearch()
+            }
+            .keyboardShortcut("f", modifiers: .command)
 
             Button("Search Templates") {
                 model.requestTemplateSearch()

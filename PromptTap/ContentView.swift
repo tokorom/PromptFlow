@@ -43,7 +43,7 @@ struct ContentView: View {
                     } label: {
                         Label("Global Search", systemImage: "magnifyingglass")
                     }
-                    .shortcutHelp("Search templates, reserves, and history", shortcut: "⌘F")
+                    .shortcutHelp("Search templates, reserves, and history", shortcut: "⌘F", placement: .leading, size: .compact)
                 }
             }
 
