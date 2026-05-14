@@ -37,12 +37,16 @@ struct CustomHotkey: Codable, Equatable {
             return nil
         }
 
-        let keyEquivalent = keyName(for: event)
+        let modifiers = event.modifierFlags.intersection(supportedModifiers)
+        guard !modifiers.isEmpty else {
+            return nil
+        }
+
+        let keyEquivalent = characterKeyName(for: event)
         guard !keyEquivalent.isEmpty else {
             return nil
         }
 
-        let modifiers = event.modifierFlags.intersection(supportedModifiers)
         return CustomHotkey(
             keyCode: UInt16(event.keyCode),
             modifiersRawValue: modifiers.rawValue,
@@ -67,59 +71,15 @@ struct CustomHotkey: Codable, Equatable {
         return symbols
     }
 
-    private static func keyName(for event: NSEvent) -> String {
-        switch event.keyCode {
-        case 36:
-            return "Return"
-        case 48:
-            return "Tab"
-        case 49:
-            return "Space"
-        case 51:
-            return "Delete"
-        case 53:
-            return "Esc"
-        case 71:
-            return "Clear"
-        case 76:
-            return "Enter"
-        case 117:
-            return "Forward Delete"
-        case 123:
-            return "←"
-        case 124:
-            return "→"
-        case 125:
-            return "↓"
-        case 126:
-            return "↑"
-        case 122:
-            return "F1"
-        case 120:
-            return "F2"
-        case 99:
-            return "F3"
-        case 118:
-            return "F4"
-        case 96:
-            return "F5"
-        case 97:
-            return "F6"
-        case 98:
-            return "F7"
-        case 100:
-            return "F8"
-        case 101:
-            return "F9"
-        case 109:
-            return "F10"
-        case 103:
-            return "F11"
-        case 111:
-            return "F12"
-        default:
-            return event.charactersIgnoringModifiers?.uppercased() ?? ""
+    private static func characterKeyName(for event: NSEvent) -> String {
+        guard let characters = event.charactersIgnoringModifiers,
+              characters.count == 1,
+              let scalar = characters.unicodeScalars.first,
+              !CharacterSet.whitespacesAndNewlines.contains(scalar),
+              !CharacterSet.controlCharacters.contains(scalar) else {
+            return ""
         }
+        return characters.uppercased()
     }
 }
 

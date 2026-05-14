@@ -107,7 +107,7 @@ struct SettingsView: View {
         .frame(width: 420)
         .sheet(isPresented: $showingCustomHotkey) {
             CustomHotkeySheet(
-                draftHotkey: $draftCustomHotkey,
+                candidateHotkey: $draftCustomHotkey,
                 currentHotkey: settings.customHotkey,
                 onCancel: {
                     draftCustomHotkey = nil
@@ -128,7 +128,7 @@ struct SettingsView: View {
             settings.hotkey
         } set: { trigger in
             if trigger == .custom {
-                draftCustomHotkey = settings.customHotkey
+                draftCustomHotkey = nil
                 showingCustomHotkey = true
             } else {
                 settings.hotkey = trigger
@@ -145,7 +145,7 @@ struct SettingsView: View {
 }
 
 private struct CustomHotkeySheet: View {
-    @Binding var draftHotkey: CustomHotkey?
+    @Binding var candidateHotkey: CustomHotkey?
 
     let currentHotkey: CustomHotkey
     let onCancel: () -> Void
@@ -156,7 +156,7 @@ private struct CustomHotkeySheet: View {
             Text("Custom Hotkey")
                 .font(.headline)
 
-            HotkeyCaptureField(hotkey: $draftHotkey)
+            HotkeyCaptureField(candidateHotkey: $candidateHotkey)
                 .frame(height: 34)
 
             HStack {
@@ -166,35 +166,37 @@ private struct CustomHotkeySheet: View {
                     .keyboardShortcut(.cancelAction)
 
                 Button("Save") {
-                    onSave(draftHotkey ?? currentHotkey)
+                    if let candidateHotkey {
+                        onSave(candidateHotkey)
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(draftHotkey == nil)
+                .disabled(candidateHotkey == nil || candidateHotkey == currentHotkey)
             }
         }
         .padding(20)
         .frame(width: 360)
         .onAppear {
-            draftHotkey = currentHotkey
+            candidateHotkey = nil
         }
     }
 }
 
 private struct HotkeyCaptureField: NSViewRepresentable {
-    @Binding var hotkey: CustomHotkey?
+    @Binding var candidateHotkey: CustomHotkey?
 
     func makeNSView(context: Context) -> CapturingHotkeyField {
         let view = CapturingHotkeyField()
         view.onCapture = { hotkey in
-            self.hotkey = hotkey
+            self.candidateHotkey = hotkey
         }
         return view
     }
 
     func updateNSView(_ nsView: CapturingHotkeyField, context: Context) {
-        nsView.hotkey = hotkey
+        nsView.candidateHotkey = candidateHotkey
         nsView.onCapture = { hotkey in
-            self.hotkey = hotkey
+            self.candidateHotkey = hotkey
         }
 
         DispatchQueue.main.async {
@@ -204,15 +206,13 @@ private struct HotkeyCaptureField: NSViewRepresentable {
 }
 
 private final class CapturingHotkeyField: NSView {
-    var hotkey: CustomHotkey? {
+    var candidateHotkey: CustomHotkey? {
         didSet {
-            displayedModifiers = hotkey?.modifiers ?? []
             needsDisplay = true
         }
     }
 
     var onCapture: ((CustomHotkey) -> Void)?
-    private var displayedModifiers: NSEvent.ModifierFlags = []
 
     override var acceptsFirstResponder: Bool {
         true
@@ -232,13 +232,7 @@ private final class CapturingHotkeyField: NSView {
         guard let captured = CustomHotkey.from(event: event) else {
             return
         }
-        displayedModifiers = captured.modifiers
         onCapture?(captured)
-    }
-
-    override func flagsChanged(with event: NSEvent) {
-        displayedModifiers = event.modifierFlags.intersection(CustomHotkey.supportedModifiers)
-        needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -263,13 +257,13 @@ private final class CapturingHotkeyField: NSView {
         appendModifier("⇧", flag: .shift, font: font, to: text)
         appendModifier("⌘", flag: .command, font: font, to: text)
 
-        let keyText = hotkey?.keyEquivalent ?? ""
+        let keyText = candidateHotkey?.keyEquivalent ?? ""
         text.append(
             NSAttributedString(
                 string: keyText.isEmpty ? " Press Shortcut" : " \(keyText)",
                 attributes: [
                     .font: font,
-                    .foregroundColor: keyText.isEmpty ? NSColor.placeholderTextColor : NSColor.labelColor
+                    .foregroundColor: keyText.isEmpty ? NSColor.placeholderTextColor : NSColor.controlAccentColor
                 ]
             )
         )
@@ -284,13 +278,13 @@ private final class CapturingHotkeyField: NSView {
         font: NSFont,
         to text: NSMutableAttributedString
     ) {
-        let isPressed = displayedModifiers.contains(flag)
+        let isCandidateModifier = candidateHotkey?.modifiers.contains(flag) == true
         text.append(
             NSAttributedString(
                 string: symbol,
                 attributes: [
                     .font: font,
-                    .foregroundColor: isPressed ? NSColor.labelColor : NSColor.placeholderTextColor.withAlphaComponent(0.35)
+                    .foregroundColor: isCandidateModifier ? NSColor.controlAccentColor : NSColor.placeholderTextColor.withAlphaComponent(0.35)
                 ]
             )
         )
