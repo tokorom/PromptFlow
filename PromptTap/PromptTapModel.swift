@@ -246,6 +246,7 @@ final class PromptTapModel: ObservableObject {
             templates.insert(newTemplate, at: 0)
             sortTemplates()
             selection = [.template(newTemplate.id)]
+            updatePromptTextFromSelection()
         default:
             break
         }
@@ -276,6 +277,7 @@ final class PromptTapModel: ObservableObject {
             sortReserves()
             selection = [.reserve(newReserve.id)]
             templateNameBuffer = finalName
+            updatePromptTextFromSelection()
         default:
             break
         }
@@ -595,7 +597,10 @@ final class PromptTapModel: ObservableObject {
         saveReserveFile(&newReserve)
         reserves.insert(newReserve, at: 0)
         sortReserves()
+
+        currentPromptBuffer = ""
         selection = [.reserve(newReserve.id)]
+        updatePromptTextFromSelection()
     }
 
     func templatePrompt() {
@@ -608,7 +613,10 @@ final class PromptTapModel: ObservableObject {
         saveTemplateFile(&newTemplate)
         templates.insert(newTemplate, at: 0)
         sortTemplates()
+
+        currentPromptBuffer = ""
         selection = [.template(newTemplate.id)]
+        updatePromptTextFromSelection()
     }
 
     func applyReserve(_ reserve: PromptReserve) {
