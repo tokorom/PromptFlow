@@ -9,11 +9,15 @@
 /* Begin PBXBuildFile section */
 		F349FDF52FAC5DA30041A49E /* Version.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = F349FDF42FAC5DA30041A49E /* Version.xcconfig */; };
 		F3CCFFD32FB54F4700039A3B /* Mixpanel in Frameworks */ = {isa = PBXBuildFile; productRef = F3CCFFD22FB54F4700039A3B /* Mixpanel */; };
+		F3D506212FB6272800D7168D /* CustomHotkeySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D506202FB6272800D7168D /* CustomHotkeySheet.swift */; };
+		F3D506232FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D506222FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		F349FDF42FAC5DA30041A49E /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
 		F3BABDF72FAB38020020B589 /* PromptTap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PromptTap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3D506202FB6272800D7168D /* CustomHotkeySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomHotkeySheet.swift; sourceTree = "<group>"; };
+		F3D506222FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -42,6 +46,8 @@
 				F3BABDF92FAB38020020B589 /* PromptTap */,
 				F3BABDF82FAB38020020B589 /* Products */,
 				F349FDF42FAC5DA30041A49E /* Version.xcconfig */,
+				F3D506202FB6272800D7168D /* CustomHotkeySheet.swift */,
+				F3D506222FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -132,6 +138,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F3D506212FB6272800D7168D /* CustomHotkeySheet.swift in Sources */,
+				F3D506232FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
