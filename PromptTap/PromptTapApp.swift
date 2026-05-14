@@ -61,7 +61,7 @@ struct PromptCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Prompt") {
-            Button("Global Search") {
+            Button("Search") {
                 model.requestGlobalSearch()
             }
             .keyboardShortcut("f", modifiers: .command)
