@@ -548,6 +548,17 @@ final class PromptTapModel: ObservableObject {
         }
     }
 
+    func newCurrentPrompt() {
+        let trimmed = currentPromptBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
+            addToHistory(currentPromptBuffer)
+        }
+        currentPromptBuffer = ""
+        selection = [.current]
+        updatePromptTextFromSelection()
+        focusEditor()
+    }
+
     func returnToTarget() {
         previousApplication?.activate(options: [.activateAllWindows])
     }
