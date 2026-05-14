@@ -10,12 +10,22 @@ import AppKit
 
 struct CustomHotkeySheet: View {
     let title: String
+    let buttonCaption: String
 
     @Binding var candidateHotkey: CustomHotkey?
 
     let currentHotkey: CustomHotkey
     let onCancel: () -> Void
     let onSave: (CustomHotkey) -> Void
+
+    init(title: String, buttonCaption: String = "Save", candidateHotkey: Binding<CustomHotkey?>, currentHotkey: CustomHotkey, onCancel: @escaping () -> Void, onSave: @escaping (CustomHotkey) -> Void) {
+        self.title = title
+        self.buttonCaption = buttonCaption
+        self._candidateHotkey = candidateHotkey
+        self.currentHotkey = currentHotkey
+        self.onCancel = onCancel
+        self.onSave = onSave
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -31,7 +41,7 @@ struct CustomHotkeySheet: View {
                 Button("Cancel", action: onCancel)
                     .keyboardShortcut(.cancelAction)
 
-                Button("Save") {
+                Button(buttonCaption) {
                     if let candidateHotkey {
                         onSave(candidateHotkey)
                     }

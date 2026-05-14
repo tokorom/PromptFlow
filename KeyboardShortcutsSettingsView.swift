@@ -29,6 +29,7 @@ struct KeyboardShortcutsSettingsView: View {
                             Text(shortcut(for: action).title)
                                 .foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -53,6 +54,7 @@ struct KeyboardShortcutsSettingsView: View {
         .sheet(item: $editingAction) { action in
             CustomHotkeySheet(
                 title: action.title,
+                buttonCaption: "Set",
                 candidateHotkey: $draftEditingHotkey,
                 currentHotkey: shortcut(for: action),
                 onCancel: {
