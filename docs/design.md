@@ -20,10 +20,10 @@
   - アプリがすでにフォアグラウンドにある状態でホットキーが押された場合、Submit Targetのアプリをアクティブにして戻る
 - アプリを開いたらテキストエディタにフォーカスがあたりすぐに文字入力できる
 - ナビゲーションバーには以下のボタン（括弧内はショートカットキー）
-  - Global Search (Command+S)
+  - Global Search (Command+F)
     - Template、Reserve、履歴を横断検索する
-- ツールバーには以下のボタン
-  - Submit
+- ツールバーには以下のボタン（括弧内はショートカットキー）
+  - Submit (Command+S)
     - このアプリに遷移する前のアプリに戻ってプロンプトの内容をペーストする
     - 遷移する前のアプリがわからなければDisabled
   - Copy (Command+C)
@@ -41,7 +41,7 @@
 - テキストエディタはVimキーバインドでの入力に切り替え可能
   - テキストエディタ部分はWKWebView+CodeMirror6で実装
   - CodeMirror6のVim modeを使うため
-- Command+Sでグローバル検索パレットを開ける
+- Command+Fでグローバル検索パレットを開ける
   - 入力中のキーワードでTemplate、Reserve、履歴の候補をリアルタイムに絞り込む
   - Enterで選択中の候補をPromptとしてCurrent Promptに適用する。履歴の場合はその履歴を選択する
   - 日本語などの文字入力の変換確定中のEnterは候補選択として扱わない

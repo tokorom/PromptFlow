@@ -64,13 +64,14 @@ struct PromptCommands: Commands {
             Button("Global Search") {
                 model.requestGlobalSearch()
             }
-            .keyboardShortcut("s", modifiers: .command)
+            .keyboardShortcut("f", modifiers: .command)
 
             Divider()
 
             Button("Submit") {
                 model.submitPrompt()
             }
+            .keyboardShortcut("s", modifiers: .command)
             .disabled(!model.canSubmit)
 
             Button("Copy") {

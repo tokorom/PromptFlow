@@ -43,7 +43,7 @@ struct ContentView: View {
                     } label: {
                         Label("Global Search", systemImage: "magnifyingglass")
                     }
-                    .shortcutHelp("Search templates, reserves, and history", shortcut: "⌘S")
+                    .shortcutHelp("Search templates, reserves, and history", shortcut: "⌘F")
                 }
             }
 
@@ -614,6 +614,7 @@ struct ContentView: View {
                 usesVimKeyBindings: settings.usesVimKeyBindings,
                 lineWrapping: settings.lineWrapping,
                 focusRequestID: model.focusRequestID,
+                onSubmit: model.isTemplateSelected ? model.saveTemplate : model.submitPrompt,
                 onCopyAll: model.copyPrompt,
                 onSearchGlobal: model.requestGlobalSearch,
                 onSearchTemplates: model.requestTemplateSearch
@@ -636,8 +637,12 @@ struct ContentView: View {
                     Text("Submit")
                 }
             }
+            .keyboardShortcut("s", modifiers: .command)
             .disabled(!model.canSubmit || model.isSubmitting)
-            .help(model.canSubmit ? "Return to the previous app and paste" : "No previous app is known yet")
+            .shortcutHelp(
+                model.canSubmit ? "Return to the previous app and paste" : "No previous app is known yet",
+                shortcut: "⌘S"
+            )
 
             Button {
                 model.copyPrompt()

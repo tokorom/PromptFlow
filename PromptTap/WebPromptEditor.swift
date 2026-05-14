@@ -15,6 +15,7 @@ struct WebPromptEditor: NSViewRepresentable {
     let usesVimKeyBindings: Bool
     let lineWrapping: Bool
     let focusRequestID: Int
+    let onSubmit: () -> Void
     let onCopyAll: () -> Void
     let onSearchGlobal: () -> Void
     let onSearchTemplates: () -> Void
@@ -117,6 +118,8 @@ extension WebPromptEditor {
                 parent.text = text
             case "selectionChanged":
                 parent.isSelectionEmpty = body["isSelectionEmpty"] as? Bool ?? true
+            case "submit":
+                parent.onSubmit()
             case "searchGlobal":
                 parent.onSearchGlobal()
             case "copyAll":
@@ -279,6 +282,12 @@ private extension WebPromptEditor {
             const lowerKey = key.toLowerCase();
 
             if (event.metaKey && lowerKey === "s") {
+              event.preventDefault();
+              post({ action: "submit" });
+              return;
+            }
+
+            if (event.metaKey && lowerKey === "f") {
               event.preventDefault();
               post({ action: "searchGlobal" });
               return;
