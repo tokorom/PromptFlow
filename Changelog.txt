@@ -1,7 +1,3 @@
 ### Added
-- Command + F: Global search navigation shortcut.
-- Shift + Command + N shortcut to start a new current prompt and move existing content to history.
-- Simplified template/reserve name generation to use the first 20 characters of the text.
+- Configurable keyboard shortcuts for app actions.
 
-### Fixed
-- Miscellaneous stability improvements for editor content management.
