@@ -26,9 +26,10 @@ struct KeyboardShortcutsSettingsView: View {
                         } label: {
                             HStack {
                                 Text(action.title)
+                                    .foregroundStyle(hasConflict(for: action) ? Color.red : Color.primary)
                                 Spacer()
                                 Text(shortcut(for: action).title)
-                                    .foregroundStyle(hasChange(for: action) ? Color.accentColor : Color.secondary)
+                                    .foregroundStyle(shortcutColor(for: action))
                             }
                             .padding(10)
                             .contentShape(Rectangle())
@@ -69,7 +70,7 @@ struct KeyboardShortcutsSettingsView: View {
                     dismiss()
                 }
                 .foregroundStyle(Color.accentColor)
-                .disabled(!hasChanges)
+                .disabled(!hasChanges || hasConflicts)
             }
         }
         .onAppear {
@@ -98,6 +99,10 @@ struct KeyboardShortcutsSettingsView: View {
         draftShortcuts != settings.keyboardShortcuts
     }
 
+    private var hasConflicts: Bool {
+        KeyboardShortcutAction.allCases.contains { hasConflict(for: $0) }
+    }
+
     private func shortcut(for action: KeyboardShortcutAction) -> CustomHotkey {
         draftShortcuts[action] ?? action.defaultHotkey
     }
@@ -108,6 +113,21 @@ struct KeyboardShortcutsSettingsView: View {
 
     private func isDefault(for action: KeyboardShortcutAction) -> Bool {
         shortcut(for: action) == action.defaultHotkey
+    }
+
+    private func hasConflict(for action: KeyboardShortcutAction) -> Bool {
+        let targetShortcut = shortcut(for: action)
+        return KeyboardShortcutAction.allCases.contains { otherAction in
+            otherAction != action && shortcut(for: otherAction) == targetShortcut
+        }
+    }
+
+    private func shortcutColor(for action: KeyboardShortcutAction) -> Color {
+        if hasConflict(for: action) {
+            return .red
+        }
+
+        return hasChange(for: action) ? .accentColor : .secondary
     }
 }
 
