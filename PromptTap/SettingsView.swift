@@ -41,6 +41,10 @@ struct SettingsView: View {
                     }
                 }
 
+                Toggle("Launch at login", isOn: $settings.launchAtLogin)
+            }
+
+            Section("Keyboard") {
                 Button {
                     model.openKeyboardShortcutsWindow()
                 } label: {
@@ -50,11 +54,10 @@ struct SettingsView: View {
                         Image(systemName: "chevron.right")
                             .foregroundStyle(.secondary)
                     }
+                    .padding(.vertical, 10)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-
-                Toggle("Launch at login", isOn: $settings.launchAtLogin)
             }
 
             Section("Editor") {
