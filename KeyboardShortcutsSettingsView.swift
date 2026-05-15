@@ -30,11 +30,10 @@ struct KeyboardShortcutsSettingsView: View {
                                 Text(shortcut(for: action).title)
                                     .foregroundStyle(hasChange(for: action) ? Color.accentColor : Color.secondary)
                             }
+                            .padding(10)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .padding(10)
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
 
                         if !isDefault(for: action) {
                             Button {
