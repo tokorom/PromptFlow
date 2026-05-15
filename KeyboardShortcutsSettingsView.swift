@@ -27,7 +27,7 @@ struct KeyboardShortcutsSettingsView: View {
                             Text(action.title)
                             Spacer()
                             Text(shortcut(for: action).title)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(hasChange(for: action) ? Color.accentColor : Color.secondary)
                         }
                         .contentShape(Rectangle())
                     }
@@ -38,16 +38,26 @@ struct KeyboardShortcutsSettingsView: View {
         .formStyle(.grouped)
         .padding(20)
         .frame(width: 420)
+        .background(
+            WindowCloseHandler {
+                hasChanges
+            } onCancel: {
+                draftShortcuts = settings.keyboardShortcuts
+                editingAction = nil
+                draftEditingHotkey = nil
+            }
+        )
         .navigationTitle("Keyboard Shortcuts")
-        // .toolbar {
-        //     ToolbarItem(placement: .confirmationAction) {
-        //         Button("Save") {
-        //             settings.keyboardShortcuts = draftShortcuts
-        //             dismiss()
-        //         }
-        //         .disabled(!hasChanges)
-        //     }
-        // }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Save") {
+                    settings.keyboardShortcuts = draftShortcuts
+                    dismiss()
+                }
+                .foregroundStyle(Color.accentColor)
+                .disabled(!hasChanges)
+            }
+        }
         .onAppear {
             draftShortcuts = settings.keyboardShortcuts
         }
@@ -76,5 +86,89 @@ struct KeyboardShortcutsSettingsView: View {
 
     private func shortcut(for action: KeyboardShortcutAction) -> CustomHotkey {
         draftShortcuts[action] ?? action.defaultHotkey
+    }
+
+    private func hasChange(for action: KeyboardShortcutAction) -> Bool {
+        shortcut(for: action) != settings.keyboardShortcuts[action]
+    }
+}
+
+extension KeyboardShortcutsSettingsView {
+    struct WindowCloseHandler: NSViewRepresentable {
+        let hasChanges: () -> Bool
+        let onCancel: () -> Void
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(hasChanges: hasChanges, onCancel: onCancel)
+        }
+
+        func makeNSView(context: Context) -> NSView {
+            let view = NSView()
+
+            DispatchQueue.main.async {
+                if let window = view.window {
+                    context.coordinator.window = window
+                    window.delegate = context.coordinator
+                }
+            }
+
+            return view
+        }
+
+        func updateNSView(_ nsView: NSView, context: Context) {
+            DispatchQueue.main.async {
+                if let window = nsView.window {
+                    context.coordinator.window = window
+                    window.delegate = context.coordinator
+                }
+            }
+        }
+
+        final class Coordinator: NSObject, NSWindowDelegate {
+            let hasChanges: () -> Bool
+            let onCancel: () -> Void
+
+            weak var window: NSWindow?
+            var shouldReallyClose = false
+
+            init(hasChanges: @escaping () -> Bool, onCancel: @escaping () -> Void) {
+                self.hasChanges = hasChanges
+                self.onCancel = onCancel
+            }
+
+            func windowShouldClose(_ sender: NSWindow) -> Bool {
+                if shouldReallyClose {
+                    shouldReallyClose = false
+                    if hasChanges() {
+                        onCancel()
+                    }
+                    return true
+                }
+
+                if !hasChanges() {
+                    return true
+                }
+
+                let alert = NSAlert()
+                alert.messageText = "ウィンドウを閉じますか？"
+                alert.informativeText = "未保存の変更が失われる可能性があります。"
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "閉じる")
+                alert.addButton(withTitle: "キャンセル")
+
+                if alert.runModal() == .alertFirstButtonReturn {
+                    shouldReallyClose = true
+                    sender.performClose(nil)
+                }
+
+                return false
+            }
+
+            func windowWillClose(_ notification: Notification) {
+                if let window {
+                    window.delegate = nil
+                }
+            }
+        }
     }
 }
