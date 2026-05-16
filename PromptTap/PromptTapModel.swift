@@ -72,6 +72,7 @@ final class PromptTapModel: ObservableObject {
     @Published var isEditorSelectionEmpty = true
     @Published private(set) var focusRequestID = 0
     @Published private(set) var focusListRequestID = 0
+    @Published private(set) var saveRequestID = 0
     @Published var selection: Set<SidebarSelection> = [.current] {
         willSet {
             handleUnsavedChangesBeforeSelectionChange(to: newValue)
@@ -232,6 +233,7 @@ final class PromptTapModel: ObservableObject {
                 saveHistory()
             }
         }
+        saveRequestID += 1
     }
 
     func saveTemplate() {
@@ -261,6 +263,7 @@ final class PromptTapModel: ObservableObject {
         default:
             break
         }
+        saveRequestID += 1
     }
 
     func saveReserve() {
@@ -291,6 +294,7 @@ final class PromptTapModel: ObservableObject {
         default:
             break
         }
+        saveRequestID += 1
     }
 
     private func generateName(from text: String) -> String {

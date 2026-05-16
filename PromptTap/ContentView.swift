@@ -29,6 +29,8 @@ struct ContentView: View {
     @State private var globalSearchQuery = ""
     @State private var globalSearchSelectedIndex = 0
 
+    @State private var isSaveButtonPressed = false
+
     var body: some View {
         VStack(spacing: 0) {
             NavigationSplitView {
@@ -131,6 +133,16 @@ struct ContentView: View {
             reserveSearchQuery = ""
             reserveSearchSelectedIndex = 0
             showingReserveSearch = true
+        }
+        .onChange(of: model.saveRequestID) {
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isSaveButtonPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isSaveButtonPressed = false
+                }
+            }
         }
         .sheet(isPresented: $showingGlobalSearch) {
             GlobalSearchPanel(
@@ -524,6 +536,8 @@ struct ContentView: View {
                             Label("Save", systemImage: "square.and.arrow.down")
                         }
                         .buttonStyle(.bordered)
+                        .background(isSaveButtonPressed ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .cornerRadius(6)
                         .appKeyboardShortcut(settings.shortcut(for: .saveSelection))
                         .disabled(model.promptText.isEmpty)
                         .fixedSize()
@@ -586,6 +600,8 @@ struct ContentView: View {
                             Label("Save", systemImage: "square.and.arrow.down")
                         }
                         .buttonStyle(.bordered)
+                        .background(isSaveButtonPressed ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .cornerRadius(6)
                         .appKeyboardShortcut(settings.shortcut(for: .saveSelection))
                         .disabled(model.promptText.isEmpty)
                         .fixedSize()
@@ -635,6 +651,8 @@ struct ContentView: View {
                             Label("Save", systemImage: "square.and.arrow.down")
                         }
                         .buttonStyle(.bordered)
+                        .background(isSaveButtonPressed ? Color.accentColor.opacity(0.2) : Color.clear)
+                        .cornerRadius(6)
                         .appKeyboardShortcut(settings.shortcut(for: .saveSelection))
                         .disabled(model.promptText.isEmpty)
                         .fixedSize()
