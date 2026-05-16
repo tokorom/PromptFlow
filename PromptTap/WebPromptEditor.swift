@@ -7,6 +7,40 @@
 
 import SwiftUI
 import WebKit
+import AppKit
+
+final class PasteboardWebView: WKWebView {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command && event.charactersIgnoringModifiers == "v" {
+            paste(nil)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        let pb = NSPasteboard.general
+        let items = pb.pasteboardItems ?? []
+
+        let texts = items.compactMap { item in
+            item.string(forType: .string)
+        }
+
+        if !texts.isEmpty {
+            let joinedText = texts.joined(separator: "\n")
+            let script = "window.promptTapEditor?.insertText(\(encodedString(joinedText)));"
+            evaluateJavaScript(script)
+        }
+    }
+
+    private func encodedString(_ string: String) -> String {
+        guard let data = try? JSONEncoder().encode(string),
+              let json = String(data: data, encoding: .utf8) else {
+            return "\"\""
+        }
+        return json
+    }
+}
 
 struct WebPromptEditor: NSViewRepresentable {
     @Binding var text: String
@@ -30,7 +64,7 @@ struct WebPromptEditor: NSViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.userContentController.add(context.coordinator, name: "promptTap")
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = PasteboardWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.loadHTMLString(Self.editorHTML, baseURL: Bundle.main.resourceURL)
@@ -557,6 +591,19 @@ private extension WebPromptEditor {
           },
           setShortcuts(shortcuts) {
             pendingShortcuts = { ...defaultShortcuts, ...shortcuts };
+          },
+          insertText(value) {
+            if (view) {
+              const transaction = view.state.replaceSelection(value);
+              view.dispatch(transaction);
+            } else if (textarea) {
+              const start = textarea.selectionStart;
+              const end = textarea.selectionEnd;
+              const current = textarea.value;
+              textarea.value = current.substring(0, start) + value + current.substring(end);
+              textarea.selectionStart = textarea.selectionEnd = start + value.length;
+              notifyText(textarea.value);
+            }
           },
           focusEditor(enterVimInsertMode) {
             pendingFocus = true;
