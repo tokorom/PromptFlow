@@ -38,13 +38,17 @@ struct PromptTapApp: App {
         .onChange(of: model.shouldOpenMainWindow) { _, newValue in
             if newValue {
                 openWindow(id: "main")
-                model.shouldOpenMainWindow = false
+                DispatchQueue.main.async {
+                    model.shouldOpenMainWindow = false
+                }
             }
         }
         .onChange(of: model.shouldCloseMainWindow) { _, newValue in
             if newValue {
                 NSApp.hide(nil)
-                model.shouldCloseMainWindow = false
+                DispatchQueue.main.async {
+                    model.shouldCloseMainWindow = false
+                }
             }
         }
 
@@ -64,7 +68,7 @@ struct PromptTapApp: App {
         .windowResizability(.contentSize)
         .onChange(of: model.shouldOpenKeyboardShortcutsWindow) { _, newValue in
             if newValue {
-                defer {
+                DispatchQueue.main.async {
                     model.shouldOpenKeyboardShortcutsWindow = false
                 }
 

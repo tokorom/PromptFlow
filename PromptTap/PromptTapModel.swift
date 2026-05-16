@@ -179,7 +179,9 @@ final class PromptTapModel: ObservableObject {
     @Published var shouldOpenKeyboardShortcutsWindow = false
 
     func openKeyboardShortcutsWindow() {
-        shouldOpenKeyboardShortcutsWindow = true
+        DispatchQueue.main.async { [weak self] in
+            self?.shouldOpenKeyboardShortcutsWindow = true
+        }
     }
 
     private func updatePromptTextFromSelection() {
@@ -188,30 +190,34 @@ final class PromptTapModel: ObservableObject {
         let suppressFocus = shouldSuppressEditorFocusOnNextSelection
         shouldSuppressEditorFocusOnNextSelection = false
 
-        switch lastSelection {
-        case .current:
-            promptText = currentPromptBuffer
-        case .history(let id):
-            if let entry = history.first(where: { $0.id == id }) {
-                promptText = entry.text
-            }
-        case .template(let id):
-            if let index = templates.firstIndex(where: { $0.id == id }) {
-                templateNameBuffer = templates[index].name
-                promptText = templates[index].text
-            }
-        case .reserve(let id):
-            if let index = reserves.firstIndex(where: { $0.id == id }) {
-                templateNameBuffer = reserves[index].name
-                promptText = reserves[index].text
-            }
-        case .newTemplate, .newReserve:
-            templateNameBuffer = ""
-            promptText = ""
-        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
 
-        if !suppressFocus {
-            focusEditor()
+            switch lastSelection {
+            case .current:
+                self.promptText = self.currentPromptBuffer
+            case .history(let id):
+                if let entry = self.history.first(where: { $0.id == id }) {
+                    self.promptText = entry.text
+                }
+            case .template(let id):
+                if let index = self.templates.firstIndex(where: { $0.id == id }) {
+                    self.templateNameBuffer = self.templates[index].name
+                    self.promptText = self.templates[index].text
+                }
+            case .reserve(let id):
+                if let index = self.reserves.firstIndex(where: { $0.id == id }) {
+                    self.templateNameBuffer = self.reserves[index].name
+                    self.promptText = self.reserves[index].text
+                }
+            case .newTemplate, .newReserve:
+                self.templateNameBuffer = ""
+                self.promptText = ""
+            }
+
+            if !suppressFocus {
+                self.focusEditor()
+            }
         }
     }
 
@@ -233,7 +239,9 @@ final class PromptTapModel: ObservableObject {
                 saveHistory()
             }
         }
-        saveRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.saveRequestID += 1
+        }
     }
 
     func saveTemplate() {
@@ -263,7 +271,9 @@ final class PromptTapModel: ObservableObject {
         default:
             break
         }
-        saveRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.saveRequestID += 1
+        }
     }
 
     func saveReserve() {
@@ -294,7 +304,9 @@ final class PromptTapModel: ObservableObject {
         default:
             break
         }
-        saveRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.saveRequestID += 1
+        }
     }
 
     private func generateName(from text: String) -> String {
@@ -591,27 +603,38 @@ final class PromptTapModel: ObservableObject {
     }
 
     func focusEditor(enterVimInsertMode: Bool = false) {
-        if enterVimInsertMode {
-            focusRequestID = (focusRequestID % 1000) + 1001 // Use 1001+ for insert mode
-        } else {
-            focusRequestID = (focusRequestID % 1000) + 1
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if enterVimInsertMode {
+                self.focusRequestID = (self.focusRequestID % 1000) + 1001 // Use 1001+ for insert mode
+            } else {
+                self.focusRequestID = (self.focusRequestID % 1000) + 1
+            }
         }
     }
 
     func focusList() {
-        focusListRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.focusListRequestID += 1
+        }
     }
 
     func requestGlobalSearch() {
-        globalSearchRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.globalSearchRequestID += 1
+        }
     }
 
     func requestTemplateSearch() {
-        templateSearchRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.templateSearchRequestID += 1
+        }
     }
 
     func requestReserveSearch() {
-        reserveSearchRequestID += 1
+        DispatchQueue.main.async { [weak self] in
+            self?.reserveSearchRequestID += 1
+        }
     }
 
     func reservePrompt() {
