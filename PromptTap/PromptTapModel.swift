@@ -681,6 +681,20 @@ final class PromptTapModel: ObservableObject {
         currentPromptBuffer = ""
     }
 
+    func historyPrompt() {
+        let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        let newEntry = PromptHistory(text: promptText)
+        history.removeAll { $0.text == promptText }
+        history.insert(newEntry, at: 0)
+        shrinkHistory(to: settings?.historyLimit ?? 100)
+        saveHistory()
+
+        selection = [.history(newEntry.id)]
+        currentPromptBuffer = ""
+    }
+
     func templatePrompt() {
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }

@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var showingGlobalSearch = false
     @State private var globalSearchQuery = ""
     @State private var globalSearchSelectedIndex = 0
+    @State private var showingCurrentPromptSaveDestination = false
 
     @State private var isSaveButtonPressed = false
 
@@ -198,6 +199,18 @@ struct ContentView: View {
             )
             .frame(width: 540, height: 420)
         }
+        .sheet(isPresented: $showingCurrentPromptSaveDestination) {
+            CurrentPromptSaveDestinationPanel(
+                onSave: { destination in
+                    saveCurrentPrompt(to: destination)
+                    showingCurrentPromptSaveDestination = false
+                },
+                onCancel: {
+                    showingCurrentPromptSaveDestination = false
+                }
+            )
+            .frame(width: 420, height: 190)
+        }
         .background {
             Button("") {
                 model.focusList()
@@ -234,6 +247,15 @@ struct ContentView: View {
             }
             .appKeyboardShortcut(settings.shortcut(for: .newCurrentPrompt))
             .opacity(0)
+
+            if model.isCurrentPromptSelected {
+                Button("") {
+                    showingCurrentPromptSaveDestination = true
+                }
+                .appKeyboardShortcut(settings.shortcut(for: .saveSelection))
+                .disabled(model.promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity(0)
+            }
 
             if !settings.usesVimKeyBindings {
                 Button("") {
@@ -813,6 +835,227 @@ struct ContentView: View {
 
     private func shortcutTitle(_ action: KeyboardShortcutAction) -> String {
         settings.shortcut(for: action).title
+    }
+
+    private func saveCurrentPrompt(to destination: CurrentPromptSaveDestination) {
+        switch destination {
+        case .template:
+            model.templatePrompt()
+        case .reserve:
+            model.reservePrompt()
+        case .history:
+            model.historyPrompt()
+        }
+    }
+}
+
+private enum CurrentPromptSaveDestination: CaseIterable {
+    case template
+    case reserve
+    case history
+
+    var title: String {
+        switch self {
+        case .template: "Template"
+        case .reserve: "Reserve"
+        case .history: "History"
+        }
+    }
+
+    var keyLabel: String {
+        switch self {
+        case .template: "T"
+        case .reserve: "R"
+        case .history: "H"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .template: "doc.on.doc"
+        case .reserve: "archivebox"
+        case .history: "clock.arrow.circlepath"
+        }
+    }
+}
+
+private enum CurrentPromptSaveFocus: Equatable {
+    case cancel
+    case destination(CurrentPromptSaveDestination)
+}
+
+private struct CurrentPromptSaveDestinationPanel: View {
+    let onSave: (CurrentPromptSaveDestination) -> Void
+    let onCancel: () -> Void
+
+    @State private var focusedOption: CurrentPromptSaveFocus = .cancel
+    @FocusState private var isPanelFocused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Save Current Prompt")
+                .font(.headline)
+
+            HStack(spacing: 10) {
+                ForEach(CurrentPromptSaveDestination.allCases, id: \.self) { destination in
+                    Button {
+                        onSave(destination)
+                    } label: {
+                        VStack(spacing: 7) {
+                            Image(systemName: destination.systemImage)
+                                .font(.title3)
+                            Text("\(destination.title) (\(destination.keyLabel))")
+                                .font(.callout)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 58)
+                    }
+                    .buttonStyle(.bordered)
+                    .overlay {
+                        if focusedOption == .destination(destination) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.accentColor, lineWidth: 2)
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel") {
+                    onCancel()
+                }
+                .keyboardShortcut(.cancelAction)
+                .overlay {
+                    if focusedOption == .cancel {
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.accentColor, lineWidth: 2)
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(.regularMaterial)
+        .focusable()
+        .focused($isPanelFocused)
+        .onAppear {
+            focusedOption = .cancel
+            isPanelFocused = true
+        }
+        .background(
+            CurrentPromptSaveDestinationKeyMonitor(
+                onMove: moveFocus,
+                onSelect: selectFocusedOption,
+                onCancel: onCancel,
+                onSave: onSave
+            )
+        )
+    }
+
+    private func moveFocus(_ delta: Int) {
+        let options: [CurrentPromptSaveFocus] = [
+            .destination(.template),
+            .destination(.reserve),
+            .destination(.history),
+            .cancel
+        ]
+        let currentIndex = options.firstIndex(of: focusedOption) ?? options.count - 1
+        let nextIndex = (currentIndex + delta + options.count) % options.count
+        focusedOption = options[nextIndex]
+    }
+
+    private func selectFocusedOption() {
+        switch focusedOption {
+        case .cancel:
+            onCancel()
+        case .destination(let destination):
+            onSave(destination)
+        }
+    }
+}
+
+private struct CurrentPromptSaveDestinationKeyMonitor: NSViewRepresentable {
+    let onMove: (Int) -> Void
+    let onSelect: () -> Void
+    let onCancel: () -> Void
+    let onSave: (CurrentPromptSaveDestination) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        context.coordinator.installMonitor()
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.parent = self
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.removeMonitor()
+    }
+
+    final class Coordinator {
+        var parent: CurrentPromptSaveDestinationKeyMonitor
+        private var monitor: Any?
+
+        init(_ parent: CurrentPromptSaveDestinationKeyMonitor) {
+            self.parent = parent
+        }
+
+        func installMonitor() {
+            guard monitor == nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                self?.handle(event) ?? event
+            }
+        }
+
+        func removeMonitor() {
+            if let monitor {
+                NSEvent.removeMonitor(monitor)
+                self.monitor = nil
+            }
+        }
+
+        private func handle(_ event: NSEvent) -> NSEvent? {
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            guard modifiers == [] else {
+                return event
+            }
+
+            switch event.keyCode {
+            case 36:
+                parent.onSelect()
+                return nil
+            case 53:
+                parent.onCancel()
+                return nil
+            case 123, 126:
+                parent.onMove(-1)
+                return nil
+            case 124, 125:
+                parent.onMove(1)
+                return nil
+            default:
+                break
+            }
+
+            switch event.charactersIgnoringModifiers?.lowercased() {
+            case "t":
+                parent.onSave(.template)
+                return nil
+            case "r":
+                parent.onSave(.reserve)
+                return nil
+            case "h":
+                parent.onSave(.history)
+                return nil
+            default:
+                return event
+            }
+        }
     }
 }
 

@@ -30,6 +30,11 @@
     - クリップボードにテキストエディタの全文をコピーする
     - ただしテキストエディタでテキストが選択されていたらそちらのコピーを優先
       - そのときはDisabled
+- Current Prompt選択中にSave Selectionショートカットを押すと、保存先としてTemplate / Reserve / History / Cancelを選ぶシートを表示する
+  - デフォルトフォーカスはCancel
+  - Template / Reserve / Historyの各ボタンには T / R / H を表記し、各キーで即時選択できる
+  - Escでキャンセルできる
+  - 上下キーまたは左右キーでフォーカスを移動し、Enterで決定できる
 - SubmitもしくはCopyを実行したときはそれぞれのボタンに0.5秒ProgressViewを表示して実行中であることを示す
 - SubmitもしくはCopyを実行したらそのPromptを履歴として保存する
   - テキストエディタの内容が空、もしくはスペースや改行のみの場合は履歴に保存しない
