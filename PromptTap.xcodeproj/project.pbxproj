@@ -15,7 +15,7 @@
 
 /* Begin PBXFileReference section */
 		F349FDF42FAC5DA30041A49E /* Version.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Version.xcconfig; sourceTree = "<group>"; };
-		F3BABDF72FAB38020020B589 /* PromptTap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PromptTap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F3BABDF72FAB38020020B589 /* PromptTap-Dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PromptTap-Dev.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3D506202FB6272800D7168D /* CustomHotkeySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomHotkeySheet.swift; sourceTree = "<group>"; };
 		F3D506222FB6272E00D7168D /* KeyboardShortcutsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardShortcutsSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -54,7 +54,7 @@
 		F3BABDF82FAB38020020B589 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F3BABDF72FAB38020020B589 /* PromptTap.app */,
+				F3BABDF72FAB38020020B589 /* PromptTap-Dev.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -82,7 +82,7 @@
 				F3CCFFD22FB54F4700039A3B /* Mixpanel */,
 			);
 			productName = PromptTap;
-			productReference = F3BABDF72FAB38020020B589 /* PromptTap.app */;
+			productReference = F3BABDF72FAB38020020B589 /* PromptTap-Dev.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -292,7 +292,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = "$(APP_VERSION)";
 				PRODUCT_BUNDLE_IDENTIFIER = work.spinners.PromptTap;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = "$(TARGET_NAME)-Dev";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
