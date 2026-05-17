@@ -1,6 +1,7 @@
 ### Added
 - Debug window title "Prompt Tap DEVELOPMENT" with red text styling for debug builds.
 - Increased auto-generated title limit for Templates and Reserves to 40 characters.
+- Percent-encoding for illegal characters (like "/") in Template and Reserve filenames, ensuring titles are preserved exactly when reloaded.
 
 ### Fixed
 - Completely resolved all "Publishing changes from within view updates is not allowed" runtime warnings across PromptTapModel and PromptTapApp by deferring state updates to the next run loop cycle.

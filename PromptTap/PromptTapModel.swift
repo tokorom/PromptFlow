@@ -939,7 +939,7 @@ final class PromptTapModel: ObservableObject {
 
     private func saveTemplateFile(_ template: inout PromptTemplate) {
         let name = template.name
-        let sanitizedName = name.components(separatedBy: CharacterSet.alphanumerics.inverted).joined(separator: "_")
+        let sanitizedName = encodeTitleForFilename(name)
 
         let newFilename: String
         if let existingFilename = template.filename {
@@ -984,9 +984,10 @@ final class PromptTapModel: ObservableObject {
                 let name: String
                 let components = nameWithoutExtension.components(separatedBy: "_")
                 if components.count >= 2 {
-                    name = components.dropLast().joined(separator: "_")
+                    let encodedName = components.dropLast().joined(separator: "_")
+                    name = decodeTitleFromFilename(encodedName)
                 } else {
-                    name = nameWithoutExtension
+                    name = decodeTitleFromFilename(nameWithoutExtension)
                 }
 
                 let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
@@ -1008,7 +1009,7 @@ final class PromptTapModel: ObservableObject {
 
     private func saveReserveFile(_ reserve: inout PromptReserve) {
         let name = reserve.name
-        let sanitizedName = name.components(separatedBy: CharacterSet.alphanumerics.inverted).joined(separator: "_")
+        let sanitizedName = encodeTitleForFilename(name)
 
         let newFilename: String
         if let existingFilename = reserve.filename {
@@ -1052,9 +1053,10 @@ final class PromptTapModel: ObservableObject {
                 let name: String
                 let components = nameWithoutExtension.components(separatedBy: "_")
                 if components.count >= 2 {
-                    name = components.dropLast().joined(separator: "_")
+                    let encodedName = components.dropLast().joined(separator: "_")
+                    name = decodeTitleFromFilename(encodedName)
                 } else {
-                    name = nameWithoutExtension
+                    name = decodeTitleFromFilename(nameWithoutExtension)
                 }
 
                 let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
@@ -1105,5 +1107,16 @@ final class PromptTapModel: ObservableObject {
 
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
+    }
+
+    private func encodeTitleForFilename(_ title: String) -> String {
+        // Encode only characters that are illegal or problematic in filenames.
+        // On macOS, "/" is the primary illegal character. ":" is also avoided for compatibility.
+        let allowed = CharacterSet(charactersIn: "/:").inverted
+        return title.addingPercentEncoding(withAllowedCharacters: allowed) ?? title
+    }
+
+    private func decodeTitleFromFilename(_ filename: String) -> String {
+        return filename.removingPercentEncoding ?? filename
     }
 }
