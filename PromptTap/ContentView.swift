@@ -921,6 +921,7 @@ private struct CurrentPromptSaveDestinationPanel: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .focusable()
                     .focused($focusedOption, equals: .destination(destination))
                 }
 
@@ -932,6 +933,7 @@ private struct CurrentPromptSaveDestinationPanel: View {
                 .buttonStyle(.bordered)
                 .controlSize(.large)
                 .keyboardShortcut(.cancelAction)
+                .focusable()
                 .focused($focusedOption, equals: .cancel)
             }
         }
@@ -939,7 +941,9 @@ private struct CurrentPromptSaveDestinationPanel: View {
         .padding(.vertical, 30)
         .background(.regularMaterial)
         .onAppear {
-            focusedOption = .cancel
+            DispatchQueue.main.async {
+                focusedOption = .cancel
+            }
         }
         .background(
             CurrentPromptSaveDestinationKeyMonitor(
