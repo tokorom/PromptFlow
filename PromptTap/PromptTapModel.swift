@@ -134,14 +134,19 @@ final class PromptTapModel: ObservableObject {
 
     @Published var showingUnsavedChangesConfirmation = false
     private(set) var pendingSelection: Set<SidebarSelection>?
+    private var pendingAction: (() -> Void)?
 
-    func requestSelection(_ newSelection: Set<SidebarSelection>) {
-        guard newSelection != selection else { return }
+    func requestSelection(_ newSelection: Set<SidebarSelection>, action: (() -> Void)? = nil) {
+        guard newSelection != selection || action != nil else { return }
 
         if hasUnsavedChanges {
             pendingSelection = newSelection
+            pendingAction = action
             showingUnsavedChangesConfirmation = true
         } else {
+            if let action = action {
+                action()
+            }
             selection = newSelection
         }
     }
@@ -155,6 +160,11 @@ final class PromptTapModel: ObservableObject {
             saveHistoryItem()
         }
 
+        if let action = pendingAction {
+            action()
+            pendingAction = nil
+        }
+
         if let pending = pendingSelection {
             selection = pending
             pendingSelection = nil
@@ -163,6 +173,11 @@ final class PromptTapModel: ObservableObject {
     }
 
     func confirmDiscardAndMove() {
+        if let action = pendingAction {
+            action()
+            pendingAction = nil
+        }
+
         if let pending = pendingSelection {
             selection = pending
             pendingSelection = nil
@@ -172,6 +187,7 @@ final class PromptTapModel: ObservableObject {
 
     func cancelMove() {
         pendingSelection = nil
+        pendingAction = nil
         showingUnsavedChangesConfirmation = false
     }
 
@@ -463,10 +479,9 @@ final class PromptTapModel: ObservableObject {
             }
         }
 
-        DispatchQueue.main.async { [weak self] in
+        requestSelection([.current]) { [weak self] in
             guard let self else { return }
             self.currentPromptBuffer = self.promptText
-            self.requestSelection([.current])
         }
     }
 
@@ -474,19 +489,15 @@ final class PromptTapModel: ObservableObject {
         if let index = templates.firstIndex(where: { $0.id == template.id }) {
             templates[index].updatedAt = Date()
             saveTemplateFile(&templates[index])
-            DispatchQueue.main.async { [weak self] in
+            requestSelection([.current]) { [weak self] in
                 guard let self else { return }
                 self.currentPromptBuffer = self.templates[index].text
-                self.promptText = self.templates[index].text
                 self.sortTemplates()
-                self.requestSelection([.current])
             }
         } else {
-            DispatchQueue.main.async { [weak self] in
+            requestSelection([.current]) { [weak self] in
                 guard let self else { return }
                 self.currentPromptBuffer = template.text
-                self.promptText = template.text
-                self.requestSelection([.current])
             }
         }
     }
@@ -512,10 +523,9 @@ final class PromptTapModel: ObservableObject {
     }
 
     func applyHistory() {
-        DispatchQueue.main.async { [weak self] in
+        requestSelection([.current]) { [weak self] in
             guard let self else { return }
             self.currentPromptBuffer = self.promptText
-            self.requestSelection([.current])
         }
     }
 
@@ -656,13 +666,16 @@ final class PromptTapModel: ObservableObject {
 
         let frontmost = NSWorkspace.shared.frontmostApplication
         if isHotkey {
-            if !currentPromptBuffer.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
-                addToHistory(currentPromptBuffer)
-                currentPromptBuffer = ""
-            }
+            let buffer = currentPromptBuffer
+            let needsClear = !buffer.isEmpty && !history.contains(where: { $0.text == buffer })
 
-            requestSelection([.current])
-            promptText = currentPromptBuffer
+            requestSelection([.current]) { [weak self] in
+                guard let self else { return }
+                if needsClear {
+                    self.addToHistory(buffer)
+                    self.currentPromptBuffer = ""
+                }
+            }
 
             if let frontmost {
                 setTarget(frontmost)
@@ -700,12 +713,9 @@ final class PromptTapModel: ObservableObject {
         if !trimmed.isEmpty && !history.contains(where: { $0.text == currentPromptBuffer }) {
             addToHistory(currentPromptBuffer)
         }
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            self.currentPromptBuffer = ""
-            self.requestSelection([.current])
-            self.updatePromptTextFromSelection()
-            self.focusEditor()
+
+        requestSelection([.current]) { [weak self] in
+            self?.currentPromptBuffer = ""
         }
     }
 
@@ -759,8 +769,9 @@ final class PromptTapModel: ObservableObject {
         reserves.insert(newReserve, at: 0)
         sortReserves()
 
-        selection = [.reserve(newReserve.id)]
-        currentPromptBuffer = ""
+        requestSelection([.reserve(newReserve.id)]) { [weak self] in
+            self?.currentPromptBuffer = ""
+        }
     }
 
     func historyPrompt() {
@@ -773,8 +784,9 @@ final class PromptTapModel: ObservableObject {
         shrinkHistory(to: settings?.historyLimit ?? 100)
         saveHistory()
 
-        selection = [.history(newEntry.id)]
-        currentPromptBuffer = ""
+        requestSelection([.history(newEntry.id)]) { [weak self] in
+            self?.currentPromptBuffer = ""
+        }
     }
 
     func templatePrompt() {
@@ -788,8 +800,9 @@ final class PromptTapModel: ObservableObject {
         templates.insert(newTemplate, at: 0)
         sortTemplates()
 
-        selection = [.template(newTemplate.id)]
-        currentPromptBuffer = ""
+        requestSelection([.template(newTemplate.id)]) { [weak self] in
+            self?.currentPromptBuffer = ""
+        }
     }
 
     func applyReserve(_ reserve: PromptReserve) {
@@ -798,13 +811,10 @@ final class PromptTapModel: ObservableObject {
             reserves[index].updatedAt = Date()
             saveReserveFile(&reserves[index])
 
-            DispatchQueue.main.async { [weak self] in
+            requestSelection([.current]) { [weak self] in
                 guard let self else { return }
                 self.currentPromptBuffer = text
-                self.promptText = text
-
                 self.sortReserves()
-                self.requestSelection([.current])
             }
         }
     }

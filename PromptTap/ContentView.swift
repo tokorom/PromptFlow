@@ -306,8 +306,7 @@ struct ContentView: View {
                         .tag(SidebarSelection.template(template.id))
                         .contextMenu {
                             Button {
-                                model.requestSelection([.template(template.id)])
-                                model.applyTemplate()
+                                model.applyTemplate(template)
                             } label: {
                                 Label("Prompt", systemImage: "arrow.right.square")
                             }
