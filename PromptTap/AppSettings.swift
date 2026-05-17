@@ -99,6 +99,7 @@ enum KeyboardShortcutAction: String, CaseIterable, Identifiable {
     case saveSelection
     case savePromptAsTemplate
     case savePromptAsReserve
+    case deleteSelection
 
     var id: String { rawValue }
 
@@ -134,6 +135,8 @@ enum KeyboardShortcutAction: String, CaseIterable, Identifiable {
             "Save Prompt as Template"
         case .savePromptAsReserve:
             "Save Prompt as Reserve"
+        case .deleteSelection:
+            "Delete Selection"
         }
     }
 
@@ -169,6 +172,8 @@ enum KeyboardShortcutAction: String, CaseIterable, Identifiable {
             Self.hotkey("T", modifiers: [.command, .shift])
         case .savePromptAsReserve:
             Self.hotkey("R", modifiers: [.command, .shift])
+        case .deleteSelection:
+            Self.hotkey("D", modifiers: [.command, .shift])
         }
     }
 

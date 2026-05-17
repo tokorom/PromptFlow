@@ -1,5 +1,10 @@
 ### Added
 - Feature to choose save destination for the current prompt.
+- Debug window title "Prompt Tap DEVELOPMENT" with red text for debug builds.
 - Increased auto-generated title limit for Templates and Reserves to 40 characters.
 - Percent-encoding for illegal characters in filenames for Templates and Reserves.
+- Configurable keyboard shortcut for deleting the current selection (default: Shift+Command+D).
 
+### Fixed
+- Improved save destination selection by using a standard dialog and correctly focusing buttons.
+- Refined UI behavior for development builds.

@@ -535,8 +535,10 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .foregroundStyle(.red)
+                        .appKeyboardShortcut(settings.shortcut(for: .deleteSelection))
                         .disabled(currentTemplate == nil)
                         .help("Delete Template")
+                        .shortcutHelp("Delete this template", shortcut: shortcutTitle(.deleteSelection))
 
                         Divider()
                             .frame(height: 16)
@@ -597,8 +599,10 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .foregroundStyle(.red)
+                        .appKeyboardShortcut(settings.shortcut(for: .deleteSelection))
                         .disabled(currentReserve == nil)
                         .help("Delete Reserve")
+                        .shortcutHelp("Delete this reserve", shortcut: shortcutTitle(.deleteSelection))
 
                         Divider()
                             .frame(height: 16)
@@ -651,7 +655,9 @@ struct ContentView: View {
                         }
                         .buttonStyle(.bordered)
                         .foregroundStyle(.red)
+                        .appKeyboardShortcut(settings.shortcut(for: .deleteSelection))
                         .help("Delete History")
+                        .shortcutHelp("Delete this history", shortcut: shortcutTitle(.deleteSelection))
 
                         Divider()
                             .frame(height: 16)
@@ -925,21 +931,26 @@ private struct CurrentPromptSaveDestinationPanel: View {
                     .focused($focusedOption, equals: .destination(destination))
                 }
 
-                Button("Cancel") {
+                Button {
                     onCancel()
+                } label: {
+                    HStack(spacing: 16) {
+                        Spacer()
+                        Text("Cancel")
+                            .font(.title3)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 54)
                 }
-                .font(.title3)
-                .frame(maxWidth: .infinity, minHeight: 42)
                 .buttonStyle(.bordered)
                 .controlSize(.large)
-                .keyboardShortcut(.cancelAction)
                 .focusable()
                 .focused($focusedOption, equals: .cancel)
+                .keyboardShortcut(.cancelAction)
             }
         }
         .padding(.horizontal, 34)
         .padding(.vertical, 30)
-        .background(.regularMaterial)
         .onAppear {
             DispatchQueue.main.async {
                 focusedOption = .cancel
