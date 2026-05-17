@@ -145,14 +145,20 @@ final class PromptTapModel: ObservableObject {
         guard newSelection != selection || action != nil else { return }
 
         if hasUnsavedChanges {
-            pendingSelection = newSelection
-            pendingAction = action
-            showingUnsavedChangesConfirmation = true
-        } else {
-            if let action = action {
-                action()
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.pendingSelection = newSelection
+                self.pendingAction = action
+                self.showingUnsavedChangesConfirmation = true
             }
-            selection = newSelection
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                if let action = action {
+                    action()
+                }
+                self.selection = newSelection
+            }
         }
     }
 
@@ -165,36 +171,48 @@ final class PromptTapModel: ObservableObject {
             saveHistoryItem()
         }
 
-        if let action = pendingAction {
-            action()
-            pendingAction = nil
-        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
 
-        if let pending = pendingSelection {
-            selection = pending
-            pendingSelection = nil
+            if let action = self.pendingAction {
+                action()
+                self.pendingAction = nil
+            }
+
+            if let pending = self.pendingSelection {
+                self.selection = pending
+                self.pendingSelection = nil
+            }
+            self.showingUnsavedChangesConfirmation = false
         }
-        showingUnsavedChangesConfirmation = false
     }
 
     func confirmDiscardAndMove() {
         isDiscardingChanges = true
-        if let action = pendingAction {
-            action()
-            pendingAction = nil
-        }
 
-        if let pending = pendingSelection {
-            selection = pending
-            pendingSelection = nil
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            if let action = self.pendingAction {
+                action()
+                self.pendingAction = nil
+            }
+
+            if let pending = self.pendingSelection {
+                self.selection = pending
+                self.pendingSelection = nil
+            }
+            self.showingUnsavedChangesConfirmation = false
         }
-        showingUnsavedChangesConfirmation = false
     }
 
     func cancelMove() {
-        pendingSelection = nil
-        pendingAction = nil
-        showingUnsavedChangesConfirmation = false
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.pendingSelection = nil
+            self.pendingAction = nil
+            self.showingUnsavedChangesConfirmation = false
+        }
     }
 
     @Published private(set) var previousApplicationName: String?
@@ -324,50 +342,52 @@ final class PromptTapModel: ObservableObject {
     func saveHistoryItem() {
         guard selection.count == 1, case .history(let id) = selection.first else { return }
 
-        if let index = history.firstIndex(where: { $0.id == id }) {
-            if history[index].text != promptText {
-                history[index] = PromptHistory(id: id, text: promptText, date: Date())
-                saveHistory()
-            }
-        }
         DispatchQueue.main.async { [weak self] in
-            self?.saveRequestID += 1
+            guard let self else { return }
+
+            if let index = self.history.firstIndex(where: { $0.id == id }) {
+                if self.history[index].text != self.promptText {
+                    self.history[index] = PromptHistory(id: id, text: self.promptText, date: Date())
+                    self.saveHistory()
+                }
+            }
+            self.saveRequestID += 1
         }
     }
 
     func saveTemplate(shouldUpdateSelection: Bool = true) {
         guard selection.count == 1, let first = selection.first else { return }
 
-        var finalName = templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
-        if finalName.isEmpty {
-            finalName = generateName(from: promptText)
-        }
-
-        switch first {
-        case .template(let id):
-            if let index = templates.firstIndex(where: { $0.id == id }) {
-                templates[index].name = finalName
-                templates[index].text = promptText
-                templates[index].updatedAt = Date()
-                saveTemplateFile(&templates[index])
-                sortTemplates()
-            }
-        case .newTemplate:
-            var newTemplate = PromptTemplate(name: finalName, text: promptText)
-            saveTemplateFile(&newTemplate)
-            templates.insert(newTemplate, at: 0)
-            sortTemplates()
-            if shouldUpdateSelection {
-                DispatchQueue.main.async { [weak self] in
-                    self?.selection = [.template(newTemplate.id)]
-                }
-            }
-        default:
-            break
-        }
+        let finalName = templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? generateName(from: promptText)
+            : templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
 
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+
+            switch first {
+            case .template(let id):
+                if let index = self.templates.firstIndex(where: { $0.id == id }) {
+                    self.templates[index].name = finalName
+                    self.templates[index].text = self.promptText
+                    self.templates[index].updatedAt = Date()
+                    var template = self.templates[index]
+                    self.saveTemplateFile(&template)
+                    self.templates[index] = template
+                    self.sortTemplates()
+                }
+            case .newTemplate:
+                var newTemplate = PromptTemplate(name: finalName, text: self.promptText)
+                self.saveTemplateFile(&newTemplate)
+                self.templates.insert(newTemplate, at: 0)
+                self.sortTemplates()
+                if shouldUpdateSelection {
+                    self.selection = [.template(newTemplate.id)]
+                }
+            default:
+                break
+            }
+
             self.templateNameBuffer = finalName
             self.saveRequestID += 1
         }
@@ -381,31 +401,32 @@ final class PromptTapModel: ObservableObject {
 
         let finalName = generateName(from: text)
 
-        switch first {
-        case .reserve(let id):
-            if let index = reserves.firstIndex(where: { $0.id == id }) {
-                reserves[index].name = finalName
-                reserves[index].text = promptText
-                reserves[index].updatedAt = Date()
-                saveReserveFile(&reserves[index])
-                sortReserves()
-            }
-        case .newReserve:
-            var newReserve = PromptReserve(name: finalName, text: text)
-            saveReserveFile(&newReserve)
-            reserves.insert(newReserve, at: 0)
-            sortReserves()
-            if shouldUpdateSelection {
-                DispatchQueue.main.async { [weak self] in
-                    self?.selection = [.reserve(newReserve.id)]
-                }
-            }
-        default:
-            break
-        }
-
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+
+            switch first {
+            case .reserve(let id):
+                if let index = self.reserves.firstIndex(where: { $0.id == id }) {
+                    self.reserves[index].name = finalName
+                    self.reserves[index].text = self.promptText
+                    self.reserves[index].updatedAt = Date()
+                    var reserve = self.reserves[index]
+                    self.saveReserveFile(&reserve)
+                    self.reserves[index] = reserve
+                    self.sortReserves()
+                }
+            case .newReserve:
+                var newReserve = PromptReserve(name: finalName, text: text)
+                self.saveReserveFile(&newReserve)
+                self.reserves.insert(newReserve, at: 0)
+                self.sortReserves()
+                if shouldUpdateSelection {
+                    self.selection = [.reserve(newReserve.id)]
+                }
+            default:
+                break
+            }
+
             self.templateNameBuffer = finalName
             self.saveRequestID += 1
         }
