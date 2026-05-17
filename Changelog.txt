@@ -1,14 +1,9 @@
 ### Added
-- Feature to choose save destination for the current prompt.
-- Debug window title "Prompt Tap DEVELOPMENT" with red text for debug builds.
-- Increased auto-generated title limit for Templates and Reserves to 40 characters.
-- Percent-encoding for illegal characters in filenames for Templates and Reserves.
 - Configurable keyboard shortcut for deleting the current selection (default: Shift+Command+D).
-- Comprehensive confirmation dialog when navigating away from Templates, Reserves, or History items with unsaved changes.
+- Confirmation dialog for unsaved changes when navigating between items to prevent data loss.
 
 ### Fixed
-- Improved save destination selection by using a standard dialog and correctly focusing buttons.
-- Refined UI behavior for development builds.
-- Selecting a Reserve from search results now opens the Reserve for editing instead of applying its content to the current prompt.
-- Fixed issue where editor content would disappear prematurely while the unsaved changes confirmation dialog was showing.
-- Ensured Submit target is set when opening via non-hotkey methods (e.g. clicking Dock icon) if it is currently empty.
+- Selecting a Reserve from search results now opens it for editing instead of applying it to current.
+- Fixed issue where editor content would disappear prematurely during navigation confirmation.
+- Improved confirmation dialog consistency across Templates, Reserves, and History items.
+- Ensured Submit target is set when opening the app via non-hotkey methods if currently empty.
