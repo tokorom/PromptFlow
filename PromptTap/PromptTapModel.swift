@@ -75,12 +75,17 @@ final class PromptTapModel: ObservableObject {
     @Published private(set) var saveRequestID = 0
     @Published var selection: Set<SidebarSelection> = [.current] {
         willSet {
-            handleUnsavedChangesBeforeSelectionChange(to: newValue)
+            if !isDiscardingChanges {
+                handleUnsavedChangesBeforeSelectionChange(to: newValue)
+            }
+            isDiscardingChanges = false
         }
         didSet {
             updatePromptTextFromSelection()
         }
     }
+
+    private var isDiscardingChanges = false
 
     private func handleUnsavedChangesBeforeSelectionChange(to newSelection: Set<SidebarSelection>) {
         guard newSelection.contains(.current) else { return }
@@ -173,6 +178,7 @@ final class PromptTapModel: ObservableObject {
     }
 
     func confirmDiscardAndMove() {
+        isDiscardingChanges = true
         if let action = pendingAction {
             action()
             pendingAction = nil
