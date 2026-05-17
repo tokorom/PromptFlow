@@ -209,7 +209,7 @@ struct ContentView: View {
                     showingCurrentPromptSaveDestination = false
                 }
             )
-            .frame(width: 420, height: 190)
+            .frame(width: 500, height: 430)
         }
         .background {
             Button("") {
@@ -879,7 +879,7 @@ private enum CurrentPromptSaveDestination: CaseIterable {
     }
 }
 
-private enum CurrentPromptSaveFocus: Equatable {
+private enum CurrentPromptSaveFocus: Hashable {
     case cancel
     case destination(CurrentPromptSaveDestination)
 }
@@ -888,58 +888,58 @@ private struct CurrentPromptSaveDestinationPanel: View {
     let onSave: (CurrentPromptSaveDestination) -> Void
     let onCancel: () -> Void
 
-    @State private var focusedOption: CurrentPromptSaveFocus = .cancel
-    @FocusState private var isPanelFocused: Bool
+    @FocusState private var focusedOption: CurrentPromptSaveFocus?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Save Current Prompt")
-                .font(.headline)
+        VStack(spacing: 24) {
+            Text("Where do you want to save\nthe prompt?")
+                .font(.system(.title, design: .default).weight(.semibold))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 10) {
+            VStack(spacing: 12) {
                 ForEach(CurrentPromptSaveDestination.allCases, id: \.self) { destination in
                     Button {
                         onSave(destination)
                     } label: {
-                        VStack(spacing: 7) {
+                        HStack(spacing: 16) {
                             Image(systemName: destination.systemImage)
-                                .font(.title3)
+                                .font(.title2)
+                                .frame(width: 42)
+
+                            Spacer()
+
                             Text("\(destination.title) (\(destination.keyLabel))")
-                                .font(.callout)
+                                .font(.title3)
+
+                            Spacer()
+
+                            Color.clear
+                                .frame(width: 42, height: 1)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 58)
+                        .frame(maxWidth: .infinity, minHeight: 54)
                     }
                     .buttonStyle(.bordered)
-                    .overlay {
-                        if focusedOption == .destination(destination) {
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(Color.accentColor, lineWidth: 2)
-                        }
-                    }
+                    .controlSize(.large)
+                    .focused($focusedOption, equals: .destination(destination))
                 }
-            }
 
-            HStack {
-                Spacer()
                 Button("Cancel") {
                     onCancel()
                 }
+                .font(.title3)
+                .frame(maxWidth: .infinity, minHeight: 42)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
                 .keyboardShortcut(.cancelAction)
-                .overlay {
-                    if focusedOption == .cancel {
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.accentColor, lineWidth: 2)
-                    }
-                }
+                .focused($focusedOption, equals: .cancel)
             }
         }
-        .padding(18)
+        .padding(.horizontal, 34)
+        .padding(.vertical, 30)
         .background(.regularMaterial)
-        .focusable()
-        .focused($isPanelFocused)
         .onAppear {
             focusedOption = .cancel
-            isPanelFocused = true
         }
         .background(
             CurrentPromptSaveDestinationKeyMonitor(
@@ -958,7 +958,7 @@ private struct CurrentPromptSaveDestinationPanel: View {
             .destination(.history),
             .cancel
         ]
-        let currentIndex = options.firstIndex(of: focusedOption) ?? options.count - 1
+        let currentIndex = focusedOption.flatMap { options.firstIndex(of: $0) } ?? options.count - 1
         let nextIndex = (currentIndex + delta + options.count) % options.count
         focusedOption = options[nextIndex]
     }
@@ -969,6 +969,8 @@ private struct CurrentPromptSaveDestinationPanel: View {
             onCancel()
         case .destination(let destination):
             onSave(destination)
+        case nil:
+            onCancel()
         }
     }
 }
