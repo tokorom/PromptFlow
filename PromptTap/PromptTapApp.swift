@@ -15,7 +15,15 @@ struct PromptTapApp: App {
     @StateObject private var settings = AppSettings()
 
     var body: some Scene {
-        WindowGroup(id: "main") {
+        let title: String = {
+            #if DEBUG
+            return "Prompt Tap DEVELOPMENT"
+            #else
+            return "Prompt Tap"
+            #endif
+        }()
+
+        WindowGroup(title, id: "main") {
             ContentView()
                 .environmentObject(model)
                 .environmentObject(settings)

@@ -1,7 +1,5 @@
 ### Added
-- Add visual feedback for save action via keyboard shortcut.
-- Unify history editing interface with templates and reserves.
+- Debug window title "Prompt Tap DEVELOPMENT" with red text styling for debug builds.
 
 ### Fixed
-- Resolve Publishing changes from within view updates is not allowed warnings.
-- Handle multi-item paste (e.g. from Xcode errors).
+- Completely resolved all "Publishing changes from within view updates is not allowed" runtime warnings across PromptTapModel and PromptTapApp by deferring state updates to the next run loop cycle.
