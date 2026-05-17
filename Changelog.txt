@@ -11,3 +11,4 @@
 - Refined UI behavior for development builds.
 - Selecting a Reserve from search results now opens the Reserve for editing instead of applying its content to the current prompt.
 - Fixed issue where editor content would disappear prematurely while the unsaved changes confirmation dialog was showing.
+- Ensured Submit target is set when opening via non-hotkey methods (e.g. clicking Dock icon) if it is currently empty.

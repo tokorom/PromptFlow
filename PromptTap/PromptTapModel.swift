@@ -707,6 +707,10 @@ final class PromptTapModel: ObservableObject {
             if let frontmost {
                 setTarget(frontmost)
             }
+        } else if previousApplication == nil {
+            if let frontmost {
+                setTarget(frontmost)
+            }
         }
 
         if isHotkey {
