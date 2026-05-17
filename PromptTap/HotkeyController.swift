@@ -30,6 +30,7 @@ final class HotkeyController {
     func start() {
         stop()
 
+        #if !DEBUG
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         let isTrusted = AXIsProcessTrustedWithOptions(options)
 
@@ -46,6 +47,7 @@ final class HotkeyController {
                 }
             }
         }
+        #endif
 
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             Task { @MainActor in

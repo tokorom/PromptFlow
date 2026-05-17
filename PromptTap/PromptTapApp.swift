@@ -31,7 +31,14 @@ struct PromptTapApp: App {
                     model.setup(settings: settings)
                     appDelegate.configure(model: model, settings: settings)
                 }
+                #if DEBUG
+                .toolbarBackground(.red.opacity(0.5), for: .windowToolbar)
+                .toolbarBackground(.visible, for: .windowToolbar)
+                #endif
         }
+        #if DEBUG
+        .windowToolbarStyle(.unified)
+        #endif
         .commands {
             PromptCommands(model: model, settings: settings)
             CommandGroup(replacing: .newItem) { }

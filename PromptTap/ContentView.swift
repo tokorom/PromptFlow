@@ -55,9 +55,6 @@ struct ContentView: View {
             bottomToolbar
         }
         .frame(minWidth: 760, minHeight: 480)
-        #if DEBUG
-        .navigationTitle(Text("Prompt Tap ") + Text("DEVELOPMENT").foregroundColor(.red))
-        #endif
         .onAppear {
             if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("main") == true }) {
                 window.collectionBehavior.insert(.moveToActiveSpace)
