@@ -157,10 +157,11 @@ struct ContentView: View {
                     case .template(let template):
                         model.applyTemplate(template)
                     case .reserve(let reserve):
-                        model.applyReserve(reserve)
+                        model.selection = [.reserve(reserve.id)]
                     case .history(let entry):
                         model.selection = [.history(entry.id)]
                     }
+
                     showingGlobalSearch = false
                 },
                 onCancel: {
@@ -190,7 +191,7 @@ struct ContentView: View {
                 query: $reserveSearchQuery,
                 selectedIndex: $reserveSearchSelectedIndex,
                 onSelect: { reserve in
-                    model.applyReserve(reserve)
+                    model.selection = [.reserve(reserve.id)]
                     showingReserveSearch = false
                 },
                 onCancel: {
