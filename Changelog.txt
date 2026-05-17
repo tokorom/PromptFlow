@@ -4,7 +4,9 @@
 - Increased auto-generated title limit for Templates and Reserves to 40 characters.
 - Percent-encoding for illegal characters in filenames for Templates and Reserves.
 - Configurable keyboard shortcut for deleting the current selection (default: Shift+Command+D).
+- Confirmation dialog when navigating away from items with unsaved changes, preventing accidental data loss.
 
 ### Fixed
 - Improved save destination selection by using a standard dialog and correctly focusing buttons.
 - Refined UI behavior for development builds.
+- Selecting a Reserve from search results now opens the Reserve for editing instead of applying its content to the current prompt.

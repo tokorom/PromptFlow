@@ -107,6 +107,74 @@ final class PromptTapModel: ObservableObject {
             break
         }
     }
+    var hasUnsavedChanges: Bool {
+        guard let first = selection.first else { return false }
+        switch first {
+        case .template(let id):
+            if let template = templates.first(where: { $0.id == id }) {
+                return template.text != promptText || template.name != templateNameBuffer
+            }
+        case .newTemplate:
+            return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .reserve(let id):
+            if let reserve = reserves.first(where: { $0.id == id }) {
+                return reserve.text != promptText
+            }
+        case .history(let id):
+            if let entry = history.first(where: { $0.id == id }) {
+                return entry.text != promptText
+            }
+        case .newReserve:
+            return !promptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        default:
+            return false
+        }
+        return false
+    }
+
+    @Published var showingUnsavedChangesConfirmation = false
+    private(set) var pendingSelection: Set<SidebarSelection>?
+
+    func requestSelection(_ newSelection: Set<SidebarSelection>) {
+        guard newSelection != selection else { return }
+
+        if hasUnsavedChanges {
+            pendingSelection = newSelection
+            showingUnsavedChangesConfirmation = true
+        } else {
+            selection = newSelection
+        }
+    }
+
+    func confirmSaveAndMove() {
+        if isTemplateSelected {
+            saveTemplate(shouldUpdateSelection: false)
+        } else if isReserveSelected {
+            saveReserve(shouldUpdateSelection: false)
+        } else if isHistorySelected {
+            saveHistoryItem()
+        }
+
+        if let pending = pendingSelection {
+            selection = pending
+            pendingSelection = nil
+        }
+        showingUnsavedChangesConfirmation = false
+    }
+
+    func confirmDiscardAndMove() {
+        if let pending = pendingSelection {
+            selection = pending
+            pendingSelection = nil
+        }
+        showingUnsavedChangesConfirmation = false
+    }
+
+    func cancelMove() {
+        pendingSelection = nil
+        showingUnsavedChangesConfirmation = false
+    }
+
     @Published private(set) var previousApplicationName: String?
     @Published private(set) var previousApplicationIcon: NSImage?
     @Published private(set) var targetHistory: [NSRunningApplication] = []
@@ -245,7 +313,7 @@ final class PromptTapModel: ObservableObject {
         }
     }
 
-    func saveTemplate() {
+    func saveTemplate(shouldUpdateSelection: Bool = true) {
         guard selection.count == 1, let first = selection.first else { return }
 
         var finalName = templateNameBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -267,8 +335,10 @@ final class PromptTapModel: ObservableObject {
             saveTemplateFile(&newTemplate)
             templates.insert(newTemplate, at: 0)
             sortTemplates()
-            DispatchQueue.main.async { [weak self] in
-                self?.selection = [.template(newTemplate.id)]
+            if shouldUpdateSelection {
+                DispatchQueue.main.async { [weak self] in
+                    self?.selection = [.template(newTemplate.id)]
+                }
             }
         default:
             break
@@ -281,7 +351,7 @@ final class PromptTapModel: ObservableObject {
         }
     }
 
-    func saveReserve() {
+    func saveReserve(shouldUpdateSelection: Bool = true) {
         guard selection.count == 1, let first = selection.first else { return }
 
         let text = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -303,8 +373,10 @@ final class PromptTapModel: ObservableObject {
             saveReserveFile(&newReserve)
             reserves.insert(newReserve, at: 0)
             sortReserves()
-            DispatchQueue.main.async { [weak self] in
-                self?.selection = [.reserve(newReserve.id)]
+            if shouldUpdateSelection {
+                DispatchQueue.main.async { [weak self] in
+                    self?.selection = [.reserve(newReserve.id)]
+                }
             }
         default:
             break
@@ -340,8 +412,10 @@ final class PromptTapModel: ObservableObject {
 
         let currentIndex = items.firstIndex { selection.contains($0) } ?? -1
         let nextIndex = (currentIndex + 1) % items.count
-        selection = [items[nextIndex]]
-        focusEditor()
+        DispatchQueue.main.async { [weak self] in
+            self?.requestSelection([items[nextIndex]])
+            self?.focusEditor()
+        }
     }
 
     func selectPreviousSidebarItem() {
@@ -350,25 +424,33 @@ final class PromptTapModel: ObservableObject {
 
         let currentIndex = items.firstIndex { selection.contains($0) } ?? 0
         let prevIndex = (currentIndex - 1 + items.count) % items.count
-        selection = [items[prevIndex]]
-        focusEditor()
+        DispatchQueue.main.async { [weak self] in
+            self?.requestSelection([items[prevIndex]])
+            self?.focusEditor()
+        }
     }
 
     func selectLatestHistory() {
         guard !history.isEmpty else {
-            selection = [.current]
-            focusEditor()
+            DispatchQueue.main.async { [weak self] in
+                self?.requestSelection([.current])
+                self?.focusEditor()
+            }
             return
         }
 
         let latestHistoryId = history[0].id
+        let nextSelection: Set<SidebarSelection>
         if selection.contains(.history(latestHistoryId)) {
-            selection = [.current]
+            nextSelection = [.current]
         } else {
-            selection = [.history(latestHistoryId)]
+            nextSelection = [.history(latestHistoryId)]
         }
 
-        focusEditor()
+        DispatchQueue.main.async { [weak self] in
+            self?.requestSelection(nextSelection)
+            self?.focusEditor()
+        }
     }
 
     func applyTemplate() {
@@ -384,7 +466,7 @@ final class PromptTapModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.currentPromptBuffer = self.promptText
-            self.selection = [.current]
+            self.requestSelection([.current])
         }
     }
 
@@ -397,14 +479,14 @@ final class PromptTapModel: ObservableObject {
                 self.currentPromptBuffer = self.templates[index].text
                 self.promptText = self.templates[index].text
                 self.sortTemplates()
-                self.selection = [.current]
+                self.requestSelection([.current])
             }
         } else {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.currentPromptBuffer = template.text
                 self.promptText = template.text
-                self.selection = [.current]
+                self.requestSelection([.current])
             }
         }
     }
@@ -433,7 +515,7 @@ final class PromptTapModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.currentPromptBuffer = self.promptText
-            self.selection = [.current]
+            self.requestSelection([.current])
         }
     }
 
@@ -579,7 +661,7 @@ final class PromptTapModel: ObservableObject {
                 currentPromptBuffer = ""
             }
 
-            selection = [.current]
+            requestSelection([.current])
             promptText = currentPromptBuffer
 
             if let frontmost {
@@ -621,7 +703,7 @@ final class PromptTapModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.currentPromptBuffer = ""
-            self.selection = [.current]
+            self.requestSelection([.current])
             self.updatePromptTextFromSelection()
             self.focusEditor()
         }
@@ -722,7 +804,7 @@ final class PromptTapModel: ObservableObject {
                 self.promptText = text
 
                 self.sortReserves()
-                self.selection = [.current]
+                self.requestSelection([.current])
             }
         }
     }

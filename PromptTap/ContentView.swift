@@ -117,6 +117,26 @@ struct ContentView: View {
                 Text(template.name)
             }
         }
+        .confirmationDialog(
+            "You have unsaved changes. Do you want to move anyway?",
+            isPresented: $model.showingUnsavedChangesConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Save and Move") {
+                model.confirmSaveAndMove()
+            }
+            .keyboardShortcut(.defaultAction)
+
+            Button("Discard and Move", role: .destructive) {
+                model.confirmDiscardAndMove()
+            }
+
+            Button("Cancel", role: .cancel) {
+                model.cancelMove()
+            }
+        } message: {
+            Text("Your changes will be lost if you don't save them.")
+        }
         .onChange(of: model.focusListRequestID) {
             isListFocused = true
         }
@@ -157,9 +177,9 @@ struct ContentView: View {
                     case .template(let template):
                         model.applyTemplate(template)
                     case .reserve(let reserve):
-                        model.selection = [.reserve(reserve.id)]
+                        model.requestSelection([.reserve(reserve.id)])
                     case .history(let entry):
-                        model.selection = [.history(entry.id)]
+                        model.requestSelection([.history(entry.id)])
                     }
 
                     showingGlobalSearch = false
@@ -191,7 +211,7 @@ struct ContentView: View {
                 query: $reserveSearchQuery,
                 selectedIndex: $reserveSearchSelectedIndex,
                 onSelect: { reserve in
-                    model.selection = [.reserve(reserve.id)]
+                    model.requestSelection([.reserve(reserve.id)])
                     showingReserveSearch = false
                 },
                 onCancel: {
@@ -269,7 +289,12 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(selection: $model.selection) {
+        let proxySelection = Binding<Set<SidebarSelection>>(
+            get: { model.selection },
+            set: { model.requestSelection($0) }
+        )
+
+        return List(selection: proxySelection) {
             Section("Current") {
                 Label("Current Prompt", systemImage: "text.alignleft")
                     .tag(SidebarSelection.current)
@@ -281,7 +306,7 @@ struct ContentView: View {
                         .tag(SidebarSelection.template(template.id))
                         .contextMenu {
                             Button {
-                                model.selection = [.template(template.id)]
+                                model.requestSelection([.template(template.id)])
                                 model.applyTemplate()
                             } label: {
                                 Label("Prompt", systemImage: "arrow.right.square")
@@ -322,7 +347,7 @@ struct ContentView: View {
                     .shortcutHelp("Search Templates", shortcut: shortcutTitle(.templateSearch), placement: .leading, size: .compact)
 
                     Button {
-                        model.selection = [.newTemplate]
+                        model.requestSelection([.newTemplate])
                         model.focusEditor()
                     } label: {
                         Image(systemName: "plus")
@@ -370,7 +395,7 @@ struct ContentView: View {
                     .shortcutHelp("Search Reserves", shortcut: shortcutTitle(.reserveSearch), placement: .leading, size: .compact)
 
                     Button {
-                        model.selection = [.newReserve]
+                        model.requestSelection([.newReserve])
                         model.focusEditor()
                     } label: {
                         Image(systemName: "plus")
